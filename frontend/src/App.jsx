@@ -4,7 +4,7 @@ import {
   Compass, Command, Globe2, Menu, Orbit, Search, SlidersHorizontal,
   Sparkles, Telescope, X,
 } from 'lucide-react'
-import PlanetScene from './three/PlanetScene'
+import ObservatoryStage from './components/ObservatoryStage'
 import PlanetDetailsPanel from './components/PlanetDetailsPanel'
 import ExplorerPage from './pages/ExplorerPage'
 import ComparePage from './pages/ComparePage'
@@ -177,48 +177,15 @@ export default function App() {
               </div>
             </section>
 
-            {/* Main Stage & Scientific Details Panel */}
-            <section className="explorer-card">
-              <div className="scene-column">
-                <div className="scene-topline">
-                  <span>
-                    <span className="live-pip" />
-                    SELECTED TARGET
-                  </span>
-                  <span className="scene-index">
-                    {String(worlds.findIndex((w) => w.name === selected.name) + 1).padStart(2, '0')}
-                    <i> / </i>
-                    {String(worlds.length).padStart(2, '0')}
-                  </span>
-                </div>
-
-                <div className="planet-stage" style={{ '--world-color': selected.color }}>
-                  <div className="orbit-ring orbit-ring-one" />
-                  <div className="orbit-ring orbit-ring-two" />
-                  <div className="scene-glow" />
-
-                  <PlanetScene
-                    planets={visibleWorlds}
-                    selectedPlanet={selected}
-                    onSelectPlanet={setSelected}
-                    color={selected.color}
-                    type={selected.planet_type || selected.type}
-                  />
-                </div>
-
-                <div className="scene-foot">
-                  <span>DRAG TO ROTATE <i>·</i> SCROLL TO ZOOM <i>·</i> CLICK PLANET TO FOCUS</span>
-                  <span>ILLUSTRATIVE 3D RENDER</span>
-                </div>
-              </div>
-
-              {/* Standardized NASA Scientific Planet Details Panel */}
-              <PlanetDetailsPanel
-                planet={selected}
-                onNavigate={navigate}
-                onCompare={() => navigate('Compare')}
-              />
-            </section>
+            {/* Unified Organic Observatory Stage */}
+            <ObservatoryStage
+              planets={visibleWorlds}
+              selectedPlanet={selected}
+              onSelectPlanet={setSelected}
+              onNavigate={navigate}
+              onCompare={(p) => navigate('Compare', p)}
+              statusLabel="OPTICAL TELEMETRY · FIELD OBSERVATION"
+            />
 
             {/* Observation Log Table */}
             <section className="catalogue-section">
