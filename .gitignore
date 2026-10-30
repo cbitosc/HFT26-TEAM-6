@@ -16,3 +16,22 @@ venv/
 # System
 .DS_Store
 Thumbs.db
+# Environment variables
+.env
+backend/.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+# Environment variables
+.env
+backend/.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Node
+node_modules/
