@@ -11,6 +11,10 @@
 @media(max-width:430px){.page-heading h1{font-size:30px}.heading-index{min-width:84px}.heading-index>span{font-size:7px}.heading-index b{font-size:20px}.scene-column{min-height:315px;padding:16px 15px 12px}.planet-stage{min-height:255px}.scene-foot{font-size:7px}.details-column{padding:23px 17px 18px}.world-name b{font-size:10px}.world-name small{font-size:8px}.world-distance{font-size:8px}.row-number{font-size:8px}.catalogue-foot{font-size:7px}}
 
 /* 3D Scene Interactive Overlay Controls */
+/* ==========================================================
+   INTERACTIVE 3D PLANET SCENE HUD & MULTI-SPECTRAL CONTROLS
+   ========================================================== */
+
 .scene-overlay-controls {
   position: absolute;
   top: 12px;
@@ -21,6 +25,16 @@
   align-items: center;
   pointer-events: none;
   z-index: 10;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.scene-controls-left,
+.scene-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
 }
 
 .scene-archetype-tag {
@@ -38,12 +52,80 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #d0d7cf;
-  pointer-events: auto;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .scene-archetype-tag svg {
   color: var(--lime);
+}
+
+.scene-mode-selector {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(14, 18, 22, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  padding: 2px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 9999px;
+  border: 0;
+  background: transparent;
+  color: #8c9689;
+  font: 9px var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.mode-btn:hover {
+  color: #e5ece0;
+}
+
+.mode-btn.active {
+  background: rgba(195, 217, 139, 0.2);
+  color: var(--lime);
+  font-weight: 500;
+  box-shadow: 0 0 10px rgba(195, 217, 139, 0.15);
+}
+
+.scene-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: rgba(18, 23, 27, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 4px;
+  font: 9px var(--mono);
+  color: #b8c2b5;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.scene-tool-btn:hover {
+  background: rgba(28, 36, 42, 0.95);
+  border-color: rgba(195, 217, 139, 0.5);
+  color: #ffffff;
+}
+
+.scene-tool-btn.active {
+  background: rgba(195, 217, 139, 0.18);
+  border-color: var(--lime);
+  color: var(--lime);
+  box-shadow: 0 0 12px rgba(195, 217, 139, 0.25);
 }
 
 .scene-reset-btn {
@@ -70,6 +152,339 @@
   border-color: rgba(195, 217, 139, 0.6);
   color: #eeefe9;
   transform: translateY(-1px);
+}
+
+/* 3D Earth Benchmark Floating Pill */
+.earth-scale-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 10px;
+  background: rgba(10, 14, 20, 0.88);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(110, 168, 254, 0.4);
+  border-radius: 9999px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+
+.earth-scale-pill b {
+  font: 500 10px Manrope, sans-serif;
+  color: #cfe2ff;
+}
+
+.earth-scale-pill small {
+  font: 8px var(--mono);
+  color: #8da4c4;
+}
+
+.earth-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #6ea8fe;
+  box-shadow: 0 0 6px #6ea8fe;
+}
+
+/* 3D Scale Caliper Ratio Badge */
+.scale-ratio-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 12px;
+  background: rgba(12, 16, 20, 0.92);
+  border: 1px dashed rgba(195, 217, 139, 0.6);
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+}
+
+.scale-ratio-badge b {
+  font: 700 11px var(--mono);
+  letter-spacing: 0.08em;
+  color: var(--lime);
+}
+
+.scale-ratio-badge span {
+  font: 9px Manrope, sans-serif;
+  color: #a4aca0;
+}
+
+/* 3D Floating Telemetry HUD Callouts */
+.hud-callout {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 6px 10px;
+  background: rgba(9, 13, 16, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  min-width: 95px;
+}
+
+.hud-callout .callout-tag {
+  font: 7px var(--mono);
+  letter-spacing: 0.12em;
+  color: #828c7f;
+  margin-bottom: 2px;
+}
+
+.hud-callout b {
+  font: 600 12px Manrope, sans-serif;
+  color: #eeefe9;
+}
+
+.hud-callout small {
+  font: 8px var(--mono);
+  color: #a5b0a2;
+}
+
+.hud-callout-radius {
+  border-left: 2px solid #8bd6c3;
+}
+
+.hud-callout-temp {
+  border-left: 2px solid #ffd43b;
+}
+
+.hud-callout-gravity {
+  border-left: 2px solid #c3d98b;
+}
+
+/* Thermal IR Sensor Legend Banner */
+.scene-thermal-banner {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 14px;
+  background: rgba(14, 18, 22, 0.88);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 107, 107, 0.4);
+  border-radius: 4px;
+  font: 9px var(--mono);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.scene-thermal-banner span:first-child {
+  color: #ff6b6b;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.thermal-legend-strip {
+  display: flex;
+  gap: 14px;
+}
+
+.legend-cold { color: #00d2d3; }
+.legend-hab { color: #2ed573; font-weight: 500; }
+.legend-hot { color: #ff4757; }
+
+/* ==========================================================
+   VISUAL DETAILS PANEL: THERMAL METER & PHYSICAL RATIOS
+   ========================================================== */
+
+.thermal-meter-section {
+  margin-top: 18px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+}
+
+.thermal-meter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.thermal-meter-header span {
+  font: 8px var(--mono);
+  letter-spacing: 0.12em;
+  color: #848c82;
+}
+
+.thermal-meter-header b {
+  font: 600 11px Manrope, sans-serif;
+  color: #eeefe9;
+}
+
+.thermal-meter-track {
+  position: relative;
+  height: 12px;
+  border-radius: 9999px;
+  background: #181d22;
+  overflow: visible;
+  display: flex;
+  margin: 6px 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.thermal-zone {
+  height: 100%;
+}
+
+.thermal-zone-cold {
+  width: 35%;
+  background: linear-gradient(to right, #0984e3, #00cec9);
+  border-top-left-radius: 9999px;
+  border-bottom-left-radius: 9999px;
+}
+
+.thermal-zone-habitable {
+  width: 30%;
+  background: linear-gradient(to right, #00cec9, #2ed573 50%, #ffa502);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 0 10px rgba(46, 213, 115, 0.35);
+}
+
+.thermal-zone-habitable span {
+  font: 700 7px var(--mono);
+  letter-spacing: 0.1em;
+  color: #0b1510;
+}
+
+.thermal-zone-hot {
+  width: 35%;
+  background: linear-gradient(to right, #ffa502, #ff4757, #9b59b6);
+  border-top-right-radius: 9999px;
+  border-bottom-right-radius: 9999px;
+}
+
+.thermal-indicator {
+  position: absolute;
+  top: -4px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 5;
+}
+
+.thermal-pip {
+  width: 14px;
+  height: 20px;
+  border-radius: 3px;
+  background: #ffffff;
+  border: 2px solid #000000;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+.thermal-pip-label {
+  position: absolute;
+  top: 22px;
+  font: 700 9px var(--mono);
+  color: #ffffff;
+  background: rgba(10, 14, 18, 0.95);
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  white-space: nowrap;
+}
+
+.thermal-meter-labels {
+  display: flex;
+  justify-content: space-between;
+  font: 8px var(--mono);
+  color: #727a70;
+  margin-top: 14px;
+}
+
+.thermal-meter-labels .label-habitable {
+  color: #2ed573;
+  font-weight: 500;
+}
+
+/* Physical Ratio Comparison Bars */
+.physical-ratio-bars {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+}
+
+.ratio-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ratio-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+}
+
+.ratio-label span {
+  font-family: var(--mono);
+  color: #848c82;
+  letter-spacing: 0.06em;
+}
+
+.ratio-label b {
+  font-family: var(--mono);
+  color: #e5ece0;
+}
+
+.ratio-track {
+  position: relative;
+  height: 6px;
+  background: #191e23;
+  border-radius: 3px;
+  overflow: visible;
+}
+
+.ratio-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.ratio-fill-radius { background: linear-gradient(to right, #2ed573, #8bd6c3); }
+.ratio-fill-mass { background: linear-gradient(to right, #0984e3, #74b9ff); }
+.ratio-fill-gravity { background: linear-gradient(to right, #ffa502, #eccc68); }
+.ratio-fill-year { background: linear-gradient(to right, #9b59b6, #a29bfe); }
+
+.ratio-marker-earth {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: #ffffff;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+  border-radius: 1px;
+}
+
+.ratio-marker-earth::after {
+  content: '1.0 ⊕';
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  font: 7px var(--mono);
+  color: #a8b4a5;
+  white-space: nowrap;
 }
 
 /* NASA Scientific Measurements Panel & Multi-Planet Styling */

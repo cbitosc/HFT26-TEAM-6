@@ -10,6 +10,7 @@ import {
 
 import PlanetScene from '../three/PlanetScene'
 import PlanetDetailsPanel from '../components/PlanetDetailsPanel'
+import SearchAutocomplete from '../components/SearchAutocomplete'
 
 export default function ExplorerPage({
   worlds,
@@ -45,18 +46,15 @@ export default function ExplorerPage({
         </div>
       </section>
 
-      {/* Search Bar */}
-      <label className="search-box explore-search">
-        <Search size={16} />
-
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search by planet name, host star, or type..."
-        />
-
-        <span>⌘ K</span>
-      </label>
+      {/* Interactive YouTube-style Search Autocomplete with Live Auto-Updating Details */}
+      <SearchAutocomplete
+        query={query}
+        setQuery={setQuery}
+        worlds={worlds}
+        selected={selected}
+        onSelectPlanet={setSelected}
+        placeholder="Search by planet name, host star, or type (e.g. Kepler, TRAPPIST, Lava)..."
+      />
 
       {/* Main 3D Stage and Details */}
       <section className="explorer-card explore-feature">

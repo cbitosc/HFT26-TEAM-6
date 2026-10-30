@@ -2,11 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Html, OrbitControls, Stars } from '@react-three/drei'
 import * as THREE from 'three'
-import { Info, RotateCcw, Sparkles } from 'lucide-react'
+import { Eye, Flame, Globe2, Layers, Radio, RotateCcw, Sparkles } from 'lucide-react'
 import Planet from './Planet'
 import { getPlanetArchetype } from './planetTextures'
 
-// Smooth camera controller that transitions smoothly and then releases control so the user can zoom and orbit freely
+// Smooth camera controller that transitions smoothly and then releases control
 function CameraController({
   targetPosition,
   planetKey,
@@ -20,13 +20,11 @@ function CameraController({
   const [isTransitioning, setIsTransitioning] = useState(false)
   const transitionTimer = useRef(null)
 
-  // Trigger camera flight only when a new planet is selected
   useEffect(() => {
     if (planetKey && planetKey !== prevPlanetKey.current) {
       prevPlanetKey.current = planetKey
       setIsTransitioning(true)
 
-      // Fallback timeout to ensure free control is always restored within 1.2s
       if (transitionTimer.current) clearTimeout(transitionTimer.current)
       transitionTimer.current = setTimeout(() => {
         setIsTransitioning(false)
@@ -37,7 +35,6 @@ function CameraController({
     }
   }, [planetKey])
 
-  // When reset is initiated, clear active tracking
   useEffect(() => {
     if (isResetting) {
       prevPlanetKey.current = null
@@ -59,8 +56,6 @@ function CameraController({
         onResetComplete()
       }
     } else if (isTransitioning && targetPosition) {
-      // Calculate a comfortable, cinematic viewing distance based on planet size
-      // (ensures the planet is framed with breathing room and not right in the user's face)
       const distOffset = Math.max(6.5, planetScale * 4.8 + 2.4)
       const targetLookAt = new THREE.Vector3(...targetPosition)
       const targetCam = new THREE.Vector3(
@@ -77,8 +72,6 @@ function CameraController({
         setIsTransitioning(false)
       }
     }
-    // When NOT transitioning and NOT resetting, OrbitControls has 100% free control!
-    // The user can freely scroll to zoom in/out and drag to orbit from any angle without fighting the camera!
   })
 
   return null
@@ -100,7 +93,6 @@ function HostStar() {
         <sphereGeometry args={[1.25, 32, 32]} />
         <meshBasicMaterial color="#ffeaa7" />
       </mesh>
-      {/* Corona glow halo */}
       <mesh scale={1.22}>
         <sphereGeometry args={[1.25, 24, 24]} />
         <meshBasicMaterial
@@ -110,7 +102,6 @@ function HostStar() {
           side={THREE.BackSide}
         />
       </mesh>
-      {/* Solar light radiating outward */}
       <pointLight intensity={32} distance={70} decay={1.8} color="#fff6e5" />
     </group>
   )
@@ -145,7 +136,6 @@ function InteractivePlanetNode({ item, isSelected, onSelect }) {
 
   return (
     <group position={position} ref={groupRef}>
-      {/* Planet Model & Click Target */}
       <group
         scale={scale}
         onClick={(e) => {
@@ -170,7 +160,6 @@ function InteractivePlanetNode({ item, isSelected, onSelect }) {
         />
       </group>
 
-      {/* Holographic Selection Ring when selected */}
       {isSelected && (
         <group rotation={[-Math.PI / 3, 0, 0]}>
           <mesh scale={scale * 1.65}>
@@ -194,7 +183,6 @@ function InteractivePlanetNode({ item, isSelected, onSelect }) {
         </group>
       )}
 
-      {/* Floating 3D Billboard Name Label */}
       <Html
         position={[0, scale * 1.6 + 0.35, 0]}
         center
@@ -211,6 +199,176 @@ function InteractivePlanetNode({ item, isSelected, onSelect }) {
   )
 }
 
+// 3D Earth companion rendered side-by-side with proportional scaling
+function EarthScaleCompanion({ position = [-2.8, 0, 0], planetRadius = 1.17 }) {
+  const earthRef = useRef()
+  const cloudsRef = useRef()
+
+  useFrame((_, delta) => {
+    if (earthRef.current) earthRef.current.rotation.y += delta * 0.14
+    if (cloudsRef.current) cloudsRef.current.rotation.y += delta * 0.18
+  })
+
+  // Proportional scale: Earth = 1.0 R⊕ (base 1.5 units)
+  const baseScale = Math.max(0.35, Math.min(1.5, 1.5 / (planetRadius || 1.0)))
+
+  return (
+    <group position={position}>
+      {/* Earth Surface Globe */}
+      <mesh ref={earthRef} scale={baseScale}>
+        <sphereGeometry args={[1.0, 48, 48]} />
+        <meshStandardMaterial
+          color="#1b5394"
+          roughness={0.7}
+          metalness={0.1}
+        />
+      </mesh>
+
+      {/* Earth Continents (Green landmass layer) */}
+      <mesh scale={baseScale * 1.002}>
+        <sphereGeometry args={[1.0, 32, 32]} />
+        <meshStandardMaterial
+          color="#387a38"
+          roughness={0.8}
+          transparent
+          opacity={0.85}
+        />
+      </mesh>
+
+      {/* Earth Clouds */}
+      <mesh ref={cloudsRef} scale={baseScale * 1.025}>
+        <sphereGeometry args={[1.0, 32, 32]} />
+        <meshStandardMaterial
+          color="#ffffff"
+          transparent
+          opacity={0.5}
+        />
+      </mesh>
+
+      {/* Blue Atmospheric Glow */}
+      <mesh scale={baseScale * 1.08}>
+        <sphereGeometry args={[1.0, 24, 24]} />
+        <meshBasicMaterial
+          color="#74b9ff"
+          transparent
+          opacity={0.25}
+          side={THREE.BackSide}
+        />
+      </mesh>
+
+      {/* Floating 3D Label for Earth */}
+      <Html position={[0, baseScale + 0.55, 0]} center distanceFactor={22} style={{ pointerEvents: 'none' }}>
+        <div className="earth-scale-pill">
+          <span className="earth-dot" />
+          <b>Earth Scale Benchmark</b>
+          <small>1.00 R⊕ · 1.00 M⊕</small>
+        </div>
+      </Html>
+    </group>
+  )
+}
+
+// 3D Holographic Telemetry HUD: Equatorial caliper ring, polar axis, and dimension callouts
+function PlanetTelemetryHUD({ planet, scale = 1.0 }) {
+  const ringRef = useRef()
+
+  useFrame((_, delta) => {
+    if (ringRef.current) ringRef.current.rotation.z += delta * 0.08
+  })
+
+  const radius = planet?.radius_earth || 1.17
+  const temp = planet?.equilibrium_temperature_k || 188
+  const period = planet?.orbital_period_days || 130
+  const gravity = planet?.mass_earth
+    ? (planet.mass_earth / Math.pow(radius, 2)).toFixed(2)
+    : 'Unmeasured'
+
+  return (
+    <group>
+      {/* Rotating Holographic Equatorial Measurement Ring */}
+      <group rotation={[Math.PI / 2.2, 0, 0]} ref={ringRef}>
+        <mesh>
+          <ringGeometry args={[scale * 1.62, scale * 1.65, 64]} />
+          <meshBasicMaterial color="#8bd6c3" transparent opacity={0.35} side={THREE.DoubleSide} />
+        </mesh>
+        <mesh>
+          <ringGeometry args={[scale * 1.72, scale * 1.74, 32]} />
+          <meshBasicMaterial color="#c3d98b" transparent opacity={0.18} side={THREE.DoubleSide} />
+        </mesh>
+      </group>
+
+      {/* Polar Axis Reticle */}
+      <line>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            count={2}
+            array={new Float32Array([0, scale * 1.9, 0, 0, -scale * 1.9, 0])}
+            itemSize={3}
+          />
+        </bufferGeometry>
+        <lineBasicMaterial color="#738a9c" transparent opacity={0.35} />
+      </line>
+
+      {/* 3D Floating Telemetry Callout: Radius */}
+      <Html position={[scale * 1.8, scale * 0.8, 0]} center distanceFactor={22} style={{ pointerEvents: 'none' }}>
+        <div className="hud-callout hud-callout-radius">
+          <span className="callout-tag">EQUATORIAL RADIUS</span>
+          <b>{radius} R⊕</b>
+          <small>{((radius / 1.0) * 100).toFixed(0)}% of Earth</small>
+        </div>
+      </Html>
+
+      {/* 3D Floating Telemetry Callout: Temperature */}
+      <Html position={[-scale * 1.8, -scale * 0.8, 0]} center distanceFactor={22} style={{ pointerEvents: 'none' }}>
+        <div className="hud-callout hud-callout-temp">
+          <span className="callout-tag">EQUILIBRIUM TEMP</span>
+          <b>{temp} K</b>
+          <small>{temp < 200 ? 'Cryogenic' : temp < 350 ? 'Habitable zone' : 'Scorching'}</small>
+        </div>
+      </Html>
+
+      {/* 3D Floating Telemetry Callout: Surface Gravity */}
+      <Html position={[scale * 1.8, -scale * 0.8, 0]} center distanceFactor={22} style={{ pointerEvents: 'none' }}>
+        <div className="hud-callout hud-callout-gravity">
+          <span className="callout-tag">SURFACE GRAVITY</span>
+          <b>{gravity !== 'Unmeasured' ? `${gravity} g` : 'Pending'}</b>
+          <small>{period} Earth days/yr</small>
+        </div>
+      </Html>
+    </group>
+  )
+}
+
+// 3D Dimension Caliper Line between Earth and Exoplanet
+function ScaleCaliperLine({ start = [-2.8, 0, 0], end = [1.8, 0, 0], planetName, planetRadius }) {
+  const ratio = (planetRadius || 1.0).toFixed(2)
+  return (
+    <group>
+      <line>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            count={2}
+            array={new Float32Array([...start, ...end])}
+            itemSize={3}
+          />
+        </bufferGeometry>
+        <lineBasicMaterial color="#c3d98b" transparent opacity={0.35} />
+      </line>
+
+      <Html position={[(start[0] + end[0]) / 2, -1.9, 0]} center distanceFactor={22} style={{ pointerEvents: 'none' }}>
+        <div className="scale-ratio-badge">
+          <b>{ratio}× EARTH RADIUS</b>
+          <span>
+            {planetName} is {ratio > 1 ? `${Math.round((ratio - 1) * 100)}% larger than Earth` : 'comparable to Earth'}
+          </span>
+        </div>
+      </Html>
+    </group>
+  )
+}
+
 export default function PlanetScene({
   planets = null,
   selectedPlanet = null,
@@ -221,8 +379,10 @@ export default function PlanetScene({
 }) {
   const controlsRef = useRef()
   const [isResetting, setIsResetting] = useState(false)
+  const [visionMode, setVisionMode] = useState('visible') // 'visible' | 'thermal' | 'atmosphere'
+  const [showEarthScale, setShowEarthScale] = useState(false)
+  const [showTelemetry, setShowTelemetry] = useState(true)
 
-  // Current active planet
   const activePlanet = selectedPlanet || planet
   const activeColor = activePlanet?.color || color || '#8bd6c3'
   const archetype = getPlanetArchetype(activePlanet, type)
@@ -232,9 +392,7 @@ export default function PlanetScene({
     if (!planets || planets.length === 0) return null
 
     return planets.map((p, idx) => {
-      // Stagger orbital radii smoothly
       const orbitRadius = 4.2 + idx * 2.5
-      // Distribute angles around host star
       const angle = idx * 1.3 + 0.35
       const x = Math.cos(angle) * orbitRadius
       const z = Math.sin(angle) * orbitRadius
@@ -253,7 +411,6 @@ export default function PlanetScene({
     })
   }, [planets])
 
-  // Selected planet's position & scale for framing
   const selectedNode = useMemo(() => {
     if (!systemPlanets || !activePlanet) return null
     return systemPlanets.find((item) => item.planet.name === activePlanet.name) || null
@@ -277,14 +434,12 @@ export default function PlanetScene({
         camera={{ position: [0, 11, 24], fov: 45 }}
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
       >
-        <color attach="background" args={['#0c1015']} />
+        <color attach="background" args={['#080c10']} />
 
-        {/* Ambient & Rim Lighting */}
         <ambientLight intensity={0.45} />
         <directionalLight position={[6, 8, 6]} intensity={2.2} />
         <directionalLight position={[-6, -4, -6]} intensity={0.35} color="#85a3cf" />
 
-        {/* Starfield */}
         <Stars
           radius={95}
           depth={60}
@@ -295,7 +450,6 @@ export default function PlanetScene({
           speed={0.4}
         />
 
-        {/* Camera lerp controller: transitions only on planet change, then frees OrbitControls */}
         <CameraController
           targetPosition={selectedNode?.position || null}
           planetKey={activePlanet?.name || null}
@@ -305,13 +459,9 @@ export default function PlanetScene({
           controlsRef={controlsRef}
         />
 
-        {/* Multi-planet system or single-planet mode */}
         {systemPlanets ? (
           <group>
-            {/* Host Star & Sunlight */}
             <HostStar />
-
-            {/* Orbit lines */}
             {systemPlanets.map((item) => (
               <OrbitRing
                 key={`orbit-${item.planet.name}`}
@@ -319,8 +469,6 @@ export default function PlanetScene({
                 isSelected={activePlanet?.name === item.planet.name}
               />
             ))}
-
-            {/* Clickable Planets in 3D Space */}
             {systemPlanets.map((item) => (
               <InteractivePlanetNode
                 key={`planet-${item.planet.name}`}
@@ -334,18 +482,42 @@ export default function PlanetScene({
             ))}
           </group>
         ) : (
-          /* Focused Single Planet preview */
+          /* Focused Single Planet with Interactive Visualizations */
           <group>
-            <Planet
-              planet={activePlanet}
-              color={activeColor}
-              type={type}
-              hasRings={activePlanet?.has_rings || activePlanet?.hasRings}
-            />
+            {/* Exoplanet in Focus */}
+            <group position={showEarthScale ? [1.8, 0, 0] : [0, 0, 0]}>
+              <Planet
+                planet={activePlanet}
+                color={activeColor}
+                type={type}
+                hasRings={activePlanet?.has_rings || activePlanet?.hasRings}
+                visionMode={visionMode}
+              />
+
+              {/* 3D Telemetry HUD (Equatorial ring & dimension callouts) */}
+              {showTelemetry && !showEarthScale && (
+                <PlanetTelemetryHUD planet={activePlanet} scale={1.0} />
+              )}
+            </group>
+
+            {/* Side-by-side 3D Earth scale comparison */}
+            {showEarthScale && (
+              <>
+                <EarthScaleCompanion
+                  position={[-2.8, 0, 0]}
+                  planetRadius={activePlanet?.radius_earth || 1.17}
+                />
+                <ScaleCaliperLine
+                  start={[-2.8, 0, 0]}
+                  end={[1.8, 0, 0]}
+                  planetName={activePlanet?.name || 'Target'}
+                  planetRadius={activePlanet?.radius_earth || 1.17}
+                />
+              </>
+            )}
           </group>
         )}
 
-        {/* Camera Orbit Controls: Free zooming and panning enabled with smooth damping */}
         <OrbitControls
           ref={controlsRef}
           enablePan={true}
@@ -362,28 +534,91 @@ export default function PlanetScene({
 
       {/* Floating Canvas UI Controls & Header */}
       <div className="scene-overlay-controls">
-        <div className="scene-archetype-tag">
-          <Sparkles size={11} />
-          <span>{archetypeNameMap[archetype] || 'Exoplanet'}</span>
+        <div className="scene-controls-left">
+          <div className="scene-archetype-tag">
+            <Sparkles size={11} />
+            <span>{archetypeNameMap[archetype] || 'Exoplanet'}</span>
+          </div>
+
+          {/* Multi-Spectral Vision Mode Toggles */}
+          <div className="scene-mode-selector">
+            <button
+              type="button"
+              className={`mode-btn ${visionMode === 'visible' ? 'active' : ''}`}
+              onClick={() => setVisionMode('visible')}
+              title="Natural visible light spectrum"
+            >
+              <Eye size={11} />
+              <span>Visible</span>
+            </button>
+            <button
+              type="button"
+              className={`mode-btn ${visionMode === 'thermal' ? 'active' : ''}`}
+              onClick={() => setVisionMode('thermal')}
+              title="Thermal infrared false-color heatmap"
+            >
+              <Flame size={11} />
+              <span>Thermal IR</span>
+            </button>
+            <button
+              type="button"
+              className={`mode-btn ${visionMode === 'atmosphere' ? 'active' : ''}`}
+              onClick={() => setVisionMode('atmosphere')}
+              title="Atmospheric spectroscopy scan"
+            >
+              <Layers size={11} />
+              <span>Atmosphere</span>
+            </button>
+          </div>
         </div>
 
-        <button
-          type="button"
-          className="scene-reset-btn"
-          onClick={handleResetCamera}
-          title="Reset Camera View to System Overview"
-          aria-label="Reset Camera"
-        >
-          <RotateCcw size={12} />
-          <span>Reset Camera</span>
-        </button>
+        <div className="scene-controls-right">
+          {/* Earth Scale Comparison Toggle */}
+          <button
+            type="button"
+            className={`scene-tool-btn ${showEarthScale ? 'active' : ''}`}
+            onClick={() => setShowEarthScale(!showEarthScale)}
+            title="Toggle side-by-side Earth scale comparison"
+          >
+            <Globe2 size={12} />
+            <span>{showEarthScale ? 'Hide Earth' : '⊕ Compare Scale'}</span>
+          </button>
+
+          {/* Telemetry HUD Toggle */}
+          <button
+            type="button"
+            className={`scene-tool-btn ${showTelemetry ? 'active' : ''}`}
+            onClick={() => setShowTelemetry(!showTelemetry)}
+            title="Toggle 3D Telemetry callouts"
+          >
+            <Radio size={12} />
+            <span>HUD</span>
+          </button>
+
+          <button
+            type="button"
+            className="scene-reset-btn"
+            onClick={handleResetCamera}
+            title="Reset Camera View to System Overview"
+            aria-label="Reset Camera"
+          >
+            <RotateCcw size={12} />
+            <span>Reset</span>
+          </button>
+        </div>
       </div>
 
-      {/* Illustrative Scale Disclaimer Note */}
-      <div className="scene-illustrative-banner">
-        <Info size={11} />
-        <span>Appearance and size are illustrative, not to scale. Click any planet to focus.</span>
-      </div>
+      {/* Thermal IR Spectrum Indicator Banner when Thermal mode is active */}
+      {visionMode === 'thermal' && (
+        <div className="scene-thermal-banner">
+          <span>THERMAL SENSOR ACTIVE</span>
+          <div className="thermal-legend-strip">
+            <span className="legend-cold">Cold (&lt;200 K)</span>
+            <span className="legend-hab">Temperate (288 K)</span>
+            <span className="legend-hot">Scorching (&gt;1000 K)</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
