@@ -174,12 +174,17 @@ export const INITIAL_PLANETS = [
 export async function getPlanets() {
   try {
     const res = await api.get('/api/planets')
-    if (Array.isArray(res.data) && res.data.length > 0) {
-      return res.data
+
+    if (Array.isArray(res.data?.data) && res.data.data.length > 0) {
+      return res.data.data
     }
+
     return INITIAL_PLANETS
   } catch (err) {
-    console.warn('Backend /api/planets unavailable, using NASA catalogue dataset fallback:', err.message)
+    console.warn(
+      'Backend /api/planets unavailable, using fallback:',
+      err.message
+    )
     return INITIAL_PLANETS
   }
 }
@@ -199,24 +204,13 @@ export async function getPlanetById(planetId) {
 export async function comparePlanets(planetAId, planetBId) {
   try {
     const res = await api.post('/api/compare', {
-      planet1_id: planetAId,
-      planet2_id: planetBId,
-      planet_a_id: planetAId,
-      planet_b_id: planetBId,
+      planet_names: [planetAId, planetBId],
     })
+
     return res.data
-  } catch {
-    const all = [EARTH_BENCHMARK, ...INITIAL_PLANETS]
-    const pA = all.find((p) => p.id === planetAId || p.name === planetAId) || INITIAL_PLANETS[0]
-    const pB = all.find((p) => p.id === planetBId || p.name === planetBId) || INITIAL_PLANETS[1]
-    return {
-      planet_a: pA,
-      planet_b: pB,
-      radius_diff: pA.radius_earth && pB.radius_earth ? Number((pA.radius_earth - pB.radius_earth).toFixed(2)) : null,
-      mass_diff: pA.mass_earth && pB.mass_earth ? Number((pA.mass_earth - pB.mass_earth).toFixed(2)) : null,
-      temp_diff: pA.equilibrium_temperature_k && pB.equilibrium_temperature_k ? pA.equilibrium_temperature_k - pB.equilibrium_temperature_k : null,
-      period_diff: pA.orbital_period_days && pB.orbital_period_days ? Number((pA.orbital_period_days - pB.orbital_period_days).toFixed(2)) : null,
-    }
+  } catch (err) {
+    console.error('Backend comparison failed:', err.response?.data || err.message)
+    throw err
   }
 }
 

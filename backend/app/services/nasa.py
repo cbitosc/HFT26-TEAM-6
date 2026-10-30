@@ -1,4 +1,6 @@
+
 from app.utils.cache import save_cache, load_cache
+
 import httpx
 import time
 
@@ -6,9 +8,17 @@ NASA_URL = "https://exoplanetarchive.ipac.caltech.edu/TAP/sync"
 
 QUERY = """
 SELECT TOP 200
-pl_name, hostname, discoverymethod, disc_year,
-pl_orbper, pl_rade, pl_bmasse, pl_orbsmax,
-pl_eqt, st_teff, sy_dist
+pl_name,
+hostname,
+discoverymethod,
+disc_year,
+pl_orbper,
+pl_rade,
+pl_bmasse,
+pl_orbsmax,
+pl_eqt,
+st_teff,
+sy_dist
 FROM pscomppars
 WHERE pl_name IS NOT NULL
 ORDER BY pl_name
@@ -16,21 +26,25 @@ ORDER BY pl_name
 
 cache = []
 last_fetch = 0
+CACHE_DURATION = 3600
 
 
 def get_planets():
     global cache, last_fetch
 
-    # Use recent in-memory data
-    if cache and time.time() - last_fetch < 3600:
+    if cache and time.time() - last_fetch < CACHE_DURATION:
         return cache
 
     try:
         response = httpx.get(
             NASA_URL,
-            params={"query": QUERY, "format": "json"},
-            timeout=30
+            params={
+                "query": QUERY,
+                "format": "json"
+            },
+            timeout=45
         )
+
         response.raise_for_status()
 
         planets = []
@@ -57,42 +71,56 @@ def get_planets():
         cache = planets
         last_fetch = time.time()
 
-        # Save successful NASA response locally
         try:
             save_cache(planets)
         except OSError as error:
             print("Cache Save Error:", error)
+
+        print(f"NASA catalogue loaded: {len(planets)} planets")
 
         return planets
 
     except (httpx.HTTPError, ValueError) as error:
         print("NASA API Error:", error)
 
-        # First use existing memory cache
         if cache:
             return cache
 
-        # Otherwise use saved local JSON
         cache = load_cache()
+        last_fetch = time.time()
+
         return cache
 
 
 def search_nasa_planets(name):
     query = """
     SELECT TOP 20
-    pl_name, hostname, discoverymethod, disc_year,
-    pl_orbper, pl_rade, pl_bmasse, pl_orbsmax,
-    pl_eqt, st_teff, sy_dist
+    pl_name,
+    hostname,
+    discoverymethod,
+    disc_year,
+    pl_orbper,
+    pl_rade,
+    pl_bmasse,
+    pl_orbsmax,
+    pl_eqt,
+    st_teff,
+    sy_dist
     FROM pscomppars
     WHERE pl_name LIKE '%{}%'
+    ORDER BY pl_name
     """.format(name.replace("'", "''"))
 
     try:
         response = httpx.get(
             NASA_URL,
-            params={"query": query, "format": "json"},
+            params={
+                "query": query,
+                "format": "json"
+            },
             timeout=30
         )
+
         response.raise_for_status()
 
         planets = []
@@ -115,6 +143,6 @@ def search_nasa_planets(name):
 
         return planets
 
-    except (httpx.HTTPError, ValueError) as error:
+    except httpx.HTTPError as error:
         print("NASA Search Error:", error)
         return []

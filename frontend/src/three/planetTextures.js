@@ -1,10 +1,13 @@
+
 import * as THREE from 'three'
 
-// Simple deterministic 2D Simplex/Perlin-style noise generator
+// Deterministic noise generator
 function createNoise2D(seed = 42) {
   const perm = new Uint8Array(512)
-  let s = seed % 2147483647
-  if (s <= 0) s += 2147483646
+  let s = Math.abs(seed) % 2147483647
+
+  if (s === 0) s = 42
+
   for (let i = 0; i < 256; i++) {
     s = (s * 16807) % 2147483647
     perm[i] = s & 255
@@ -16,7 +19,7 @@ function createNoise2D(seed = 42) {
   }
 
   function lerp(a, b, t) {
-    return a + t * (b - a)
+    return a + (b - a) * t
   }
 
   function grad(hash, x, y) {
@@ -31,12 +34,15 @@ function createNoise2D(seed = 42) {
     const Y = Math.floor(y) & 255
     const xf = x - Math.floor(x)
     const yf = y - Math.floor(y)
+
     const u = fade(xf)
     const v = fade(yf)
+
     const aa = perm[perm[X] + Y]
     const ab = perm[perm[X] + Y + 1]
     const ba = perm[perm[X + 1] + Y]
     const bb = perm[perm[X + 1] + Y + 1]
+
     return lerp(
       lerp(grad(aa, xf, yf), grad(ba, xf - 1, yf), u),
       lerp(grad(ab, xf, yf - 1), grad(bb, xf - 1, yf - 1), u),
@@ -45,399 +51,483 @@ function createNoise2D(seed = 42) {
   }
 }
 
-function fbm(noise, x, y, octaves = 5, lacunarity = 2.0, gain = 0.5) {
+function fbm(noise, x, y, octaves = 5, lacunarity = 2, gain = 0.5) {
   let total = 0
-  let frequency = 1.0
-  let amplitude = 1.0
+  let frequency = 1
+  let amplitude = 1
   let maxValue = 0
+
   for (let i = 0; i < octaves; i++) {
     total += noise(x * frequency, y * frequency) * amplitude
     maxValue += amplitude
     frequency *= lacunarity
     amplitude *= gain
   }
+
   return total / maxValue
 }
 
-// Memory cache so we don't re-create textures on every render
+function clamp(value) {
+  return Math.max(0, Math.min(1, value))
+}
+
+function writePixel(data, index, color) {
+  data[index] = Math.round(clamp(color.r) * 255)
+  data[index + 1] = Math.round(clamp(color.g) * 255)
+  data[index + 2] = Math.round(clamp(color.b) * 255)
+  data[index + 3] = 255
+}
+
+function mixColors(a, b, amount) {
+  return a.clone().lerp(b, clamp(amount))
+}
+
+// Different stable palettes for individual planets
+function getPlanetPalette(baseColor, seed) {
+  const base = new THREE.Color(baseColor)
+
+  const hueShift = (((seed % 101) / 100) - 0.5) * 0.32
+  const saturationShift = (((seed % 37) / 36) - 0.5) * 0.25
+  const lightnessShift = (((seed % 29) / 28) - 0.5) * 0.16
+
+  base.offsetHSL(hueShift, saturationShift, lightnessShift)
+
+  return {
+    primary: base,
+    secondary: base.clone().offsetHSL(0.07, 0.12, 0.13),
+    dark: base.clone().offsetHSL(-0.06, -0.08, -0.2),
+    accent: base.clone().offsetHSL(0.16, 0.18, 0.05),
+  }
+}
+
 const textureCache = new Map()
 
-/**
- * Determine the visual archetype of an exoplanet
- */
 export function getPlanetArchetype(planet, fallbackType = '') {
-  const typeStr = ((planet?.planet_type || planet?.type || fallbackType || '') + ' ' + (planet?.name || '')).toLowerCase()
-  const temp = planet?.equilibrium_temperature_k || (typeof planet?.temperature === 'number' ? planet.temperature : null)
-  const radius = planet?.radius_earth || (typeof planet?.radius === 'number' ? planet.radius : null)
+  const typeStr = (
+    (planet?.planet_type || planet?.type || fallbackType || '') +
+    ' ' +
+    (planet?.name || '')
+  ).toLowerCase()
 
-  if (typeStr.includes('lava') || typeStr.includes('magma') || typeStr.includes('volcanic') || typeStr.includes('55 cancri') || (temp && temp > 1400)) {
+  const temp =
+    planet?.equilibrium_temperature_k ??
+    (typeof planet?.temperature === 'number' ? planet.temperature : null)
+
+  const radius =
+    planet?.radius_earth ??
+    (typeof planet?.radius === 'number' ? planet.radius : null)
+
+  if (
+    typeStr.includes('lava') ||
+    typeStr.includes('magma') ||
+    typeStr.includes('volcanic') ||
+    typeStr.includes('55 cancri') ||
+    (temp !== null && temp !== undefined && temp > 1400)
+  ) {
     return 'lava'
   }
-  if (typeStr.includes('gas') || typeStr.includes('jovian') || typeStr.includes('jupiter') || typeStr.includes('wasp') || (radius && radius > 4)) {
-    return 'gas_giant'
-  }
-  if (typeStr.includes('ice') || typeStr.includes('frozen') || typeStr.includes('cryo') || typeStr.includes('gliese 436') || (temp && temp < 160)) {
+
+  if (
+    typeStr.includes('ice') ||
+    typeStr.includes('frozen') ||
+    typeStr.includes('cryo') ||
+    typeStr.includes('gliese 436') ||
+    (temp !== null && temp !== undefined && temp < 160)
+  ) {
     return 'ice'
   }
-  if (typeStr.includes('desert') || typeStr.includes('arid') || typeStr.includes('proxima') || typeStr.includes('martian')) {
+
+  if (
+    typeStr.includes('gas') ||
+    typeStr.includes('jovian') ||
+    typeStr.includes('jupiter') ||
+    typeStr.includes('wasp') ||
+    (radius !== null && radius !== undefined && radius > 4)
+  ) {
+    return 'gas_giant'
+  }
+
+  if (
+    typeStr.includes('desert') ||
+    typeStr.includes('arid') ||
+    typeStr.includes('proxima') ||
+    typeStr.includes('martian')
+  ) {
     return 'desert'
   }
+
   return 'terrestrial'
 }
 
-/**
- * Procedural texture generator using HTML5 Canvas & Three.js CanvasTexture
- */
-export function generatePlanetTextures(archetype, baseColor = '#8bd6c3', seed = 42) {
-  const cacheKey = `${archetype}_${baseColor}_${seed}`
+export function generatePlanetTextures(
+  archetype,
+  baseColor = '#8bd6c3',
+  seed = 42
+) {
+  const safeSeed = Math.abs(Math.floor(seed)) || 42
+  const cacheKey = `${archetype}_${baseColor}_${safeSeed}`
+
   if (textureCache.has(cacheKey)) {
     return textureCache.get(cacheKey)
   }
 
   const width = 1024
   const height = 512
-  const noise = createNoise2D(seed)
+  const noise = createNoise2D(safeSeed)
+  const palette = getPlanetPalette(baseColor, safeSeed)
 
-  // 1. Surface Canvas
   const canvas = document.createElement('canvas')
   canvas.width = width
   canvas.height = height
+
   const ctx = canvas.getContext('2d')
+  const imgData = ctx.createImageData(width, height)
+  const data = imgData.data
 
-  // 2. Cloud Canvas (optional, for terrestrial worlds)
   let cloudsCanvas = null
-
-  // 3. Emissive Canvas (for lava worlds)
   let emissiveCanvas = null
 
-  const baseRGB = new THREE.Color(baseColor)
-
+  // GAS GIANT: atmospheric bands and storm patterns
   if (archetype === 'gas_giant') {
-    // --- GAS GIANT: Banded Zonal Jet Streams + Storm Vortices ---
-    const imgData = ctx.createImageData(width, height)
-    const data = imgData.data
+    const col1 = palette.primary
+    const col2 = palette.secondary
+    const col3 = palette.dark
+    const col4 = palette.accent
 
-    const col1 = baseRGB.clone()
-    const col2 = baseRGB.clone().offsetHSL(0.08, -0.15, 0.22)
-    const col3 = baseRGB.clone().offsetHSL(-0.06, 0.25, -0.2)
-    const colWhite = new THREE.Color('#f0ece1')
+    const stormX = width * (0.25 + (safeSeed % 50) / 100)
+    const stormY = height * (0.35 + (safeSeed % 30) / 100)
+    const stormRX = width * 0.075
+    const stormRY = height * 0.09
 
-    const stormX = Math.floor(width * 0.42)
-    const stormY = Math.floor(height * 0.62)
-    const stormRadiusX = width * 0.08
-    const stormRadiusY = height * 0.06
+    const bandCount = 22 + (safeSeed % 12)
 
     for (let y = 0; y < height; y++) {
       const v = y / height
-      // Latitude bands with turbulence
-      const latWarp = fbm(noise, 0.5, v * 8, 4) * 0.12
-      const bandVal = Math.sin((v + latWarp) * 32 + Math.sin(v * 16) * 1.5) * 0.5 + 0.5
+      const warp = fbm(noise, 0.5, v * 8, 4) * 0.12
 
       for (let x = 0; x < width; x++) {
         const u = x / width
-        const fineNoise = fbm(noise, u * 12, v * 24, 4) * 0.25
-        const t = Math.max(0, Math.min(1, bandVal + fineNoise))
 
-        let r, g, b
+        const band = Math.sin(
+          (v + warp) * bandCount + Math.sin(v * 15) * 1.5
+        ) * 0.5 + 0.5
+
+        const detail = fbm(noise, u * 14, v * 25, 4) * 0.22
+        const t = clamp(band + detail)
+
+        let color
+
         if (t < 0.4) {
-          const m = t / 0.4
-          r = THREE.MathUtils.lerp(col3.r, col1.r, m)
-          g = THREE.MathUtils.lerp(col3.g, col1.g, m)
-          b = THREE.MathUtils.lerp(col3.b, col1.b, m)
+          color = mixColors(col3, col1, t / 0.4)
         } else if (t < 0.8) {
-          const m = (t - 0.4) / 0.4
-          r = THREE.MathUtils.lerp(col1.r, col2.r, m)
-          g = THREE.MathUtils.lerp(col1.g, col2.g, m)
-          b = THREE.MathUtils.lerp(col1.b, col2.b, m)
+          color = mixColors(col1, col2, (t - 0.4) / 0.4)
         } else {
-          const m = (t - 0.8) / 0.2
-          r = THREE.MathUtils.lerp(col2.r, colWhite.r, m)
-          g = THREE.MathUtils.lerp(col2.g, colWhite.g, m)
-          b = THREE.MathUtils.lerp(col2.b, colWhite.b, m)
+          color = mixColors(col2, col4, (t - 0.8) / 0.2)
         }
 
-        // Great Storm Vortex
-        const dx = (x - stormX) / stormRadiusX
-        const dy = (y - stormY) / stormRadiusY
-        const distSq = dx * dx + dy * dy
-        if (distSq < 1.0) {
-          const stormIntensity = Math.exp(-distSq * 2.5)
+        // Seeded storm position and swirling appearance
+        const dx = (x - stormX) / stormRX
+        const dy = (y - stormY) / stormRY
+        const distance = dx * dx + dy * dy
+
+        if (distance < 1) {
+          const intensity = Math.exp(-distance * 2.5)
           const angle = Math.atan2(dy, dx)
-          const swirl = Math.sin(angle * 3 + distSq * 8) * 0.5 + 0.5
-          r = THREE.MathUtils.lerp(r, col3.r * 1.3, stormIntensity * (0.6 + 0.4 * swirl))
-          g = THREE.MathUtils.lerp(g, col1.g * 0.7, stormIntensity)
-          b = THREE.MathUtils.lerp(b, col2.b * 0.6, stormIntensity)
+          const swirl = Math.sin(angle * 3 + distance * 8) * 0.5 + 0.5
+
+          const stormColor = mixColors(
+            col3,
+            col4,
+            0.4 + swirl * 0.4
+          )
+
+          color.lerp(stormColor, intensity * 0.8)
         }
 
-        const idx = (y * width + x) * 4
-        data[idx] = Math.min(255, Math.floor(r * 255))
-        data[idx + 1] = Math.min(255, Math.floor(g * 255))
-        data[idx + 2] = Math.min(255, Math.floor(b * 255))
-        data[idx + 3] = 255
+        writePixel(data, (y * width + x) * 4, color)
       }
     }
-    ctx.putImageData(imgData, 0, 0)
+  }
 
-  } else if (archetype === 'lava') {
-    // --- LAVA WORLD: Dark basalt crust with glowing magma fissures ---
-    const imgData = ctx.createImageData(width, height)
-    const data = imgData.data
-
+  // LAVA PLANET: dark volcanic surface and glowing fissures
+  else if (archetype === 'lava') {
     emissiveCanvas = document.createElement('canvas')
     emissiveCanvas.width = width
     emissiveCanvas.height = height
+
     const emissiveCtx = emissiveCanvas.getContext('2d')
-    const emissiveImgData = emissiveCtx.createImageData(width, height)
-    const eData = emissiveImgData.data
+    const emissiveImg = emissiveCtx.createImageData(width, height)
+    const eData = emissiveImg.data
+
+    const crust = new THREE.Color('#171319')
+    const lava = new THREE.Color('#ff4d00')
+    const brightLava = new THREE.Color('#ffd166')
+
+    const threshold = 0.77 + (safeSeed % 10) / 100
 
     for (let y = 0; y < height; y++) {
       const v = y / height
+
       for (let x = 0; x < width; x++) {
         const u = x / width
-        // Voronoi/fissure ridge noise
-        const n1 = Math.abs(fbm(noise, u * 8, v * 8, 4))
-        const n2 = Math.abs(fbm(noise, u * 16 + 1.2, v * 16 + 2.4, 3))
-        const fissure = 1.0 - Math.min(n1, n2)
 
-        // Basalt crust (dark charcoal/slate)
-        const crustDark = 0.08 + fbm(noise, u * 4, v * 4, 3) * 0.06
-        let r = crustDark * 1.2
-        let g = crustDark * 0.9
-        let b = crustDark * 0.9
+        const n1 = Math.abs(fbm(noise, u * 9, v * 9, 4))
+        const n2 = Math.abs(fbm(noise, u * 18 + 1.2, v * 18 + 2.4, 3))
+        const fissure = 1 - Math.min(n1, n2)
 
-        let er = 0
-        let eg = 0
-        let eb = 0
+        const surfaceNoise = fbm(noise, u * 5, v * 5, 3)
+        const color = crust.clone().multiplyScalar(
+          0.8 + (surfaceNoise + 1) * 0.12
+        )
 
-        // Fissure threshold
-        if (fissure > 0.82) {
-          const intensity = Math.pow((fissure - 0.82) / 0.18, 1.8)
-          // Molten yellow/orange/red gradient
-          r = THREE.MathUtils.lerp(r, 1.0, intensity)
-          g = THREE.MathUtils.lerp(g, 0.45 * intensity + 0.1, intensity)
-          b = THREE.MathUtils.lerp(b, 0.08, intensity)
+        let glow = 0
 
-          er = Math.min(255, Math.floor(r * 255 * intensity * 1.5))
-          eg = Math.min(255, Math.floor(g * 255 * intensity * 1.2))
-          eb = Math.min(255, Math.floor(0.1 * 255 * intensity))
+        if (fissure > threshold) {
+          glow = Math.pow(
+            (fissure - threshold) / (1 - threshold),
+            1.7
+          )
+
+          color.lerp(lava, glow)
+          color.lerp(brightLava, glow * 0.25)
         }
 
-        const idx = (y * width + x) * 4
-        data[idx] = Math.min(255, Math.floor(r * 255))
-        data[idx + 1] = Math.min(255, Math.floor(g * 255))
-        data[idx + 2] = Math.min(255, Math.floor(b * 255))
-        data[idx + 3] = 255
+        const index = (y * width + x) * 4
+        writePixel(data, index, color)
 
-        eData[idx] = er
-        eData[idx + 1] = eg
-        eData[idx + 2] = eb
-        eData[idx + 3] = 255
+        eData[index] = Math.round(glow * 255)
+        eData[index + 1] = Math.round(glow * 95)
+        eData[index + 2] = Math.round(glow * 12)
+        eData[index + 3] = 255
       }
     }
-    ctx.putImageData(imgData, 0, 0)
-    emissiveCtx.putImageData(emissiveImgData, 0, 0)
 
-  } else if (archetype === 'ice') {
-    // --- ICE WORLD: Glacial ice sheets, frost, tectonic chasmata ---
-    const imgData = ctx.createImageData(width, height)
-    const data = imgData.data
+    emissiveCtx.putImageData(emissiveImg, 0, 0)
+  }
 
-    const colDeepIce = new THREE.Color('#5894b8')
-    const colBrightIce = new THREE.Color('#d4f1f9')
-    const colFrost = new THREE.Color('#f5fdff')
-    const colChasm = new THREE.Color('#214968')
+  // ICE PLANET: glaciers, frozen plains and dark cracks
+  else if (archetype === 'ice') {
+    const deepIce = palette.primary.clone().lerp(
+      new THREE.Color('#214968'),
+      0.35
+    )
+
+    const brightIce = palette.secondary.clone().lerp(
+      new THREE.Color('#d4f1f9'),
+      0.5
+    )
+
+    const frost = new THREE.Color('#f5fdff')
+    const chasm = palette.dark.clone().lerp(
+      new THREE.Color('#142c45'),
+      0.5
+    )
 
     for (let y = 0; y < height; y++) {
       const v = y / height
+
       for (let x = 0; x < width; x++) {
         const u = x / width
+
         const terrain = fbm(noise, u * 5, v * 5, 5) * 0.5 + 0.5
-        const chasmNoise = 1.0 - Math.abs(fbm(noise, u * 14, v * 14, 3))
+        const cracks = 1 - Math.abs(
+          fbm(noise, u * 15, v * 15, 3)
+        )
 
-        let r, g, b
+        let color
+
         if (terrain < 0.45) {
-          const t = terrain / 0.45
-          r = THREE.MathUtils.lerp(colDeepIce.r, colBrightIce.r, t)
-          g = THREE.MathUtils.lerp(colDeepIce.g, colBrightIce.g, t)
-          b = THREE.MathUtils.lerp(colDeepIce.b, colBrightIce.b, t)
+          color = mixColors(deepIce, brightIce, terrain / 0.45)
         } else {
-          const t = (terrain - 0.45) / 0.55
-          r = THREE.MathUtils.lerp(colBrightIce.r, colFrost.r, t)
-          g = THREE.MathUtils.lerp(colBrightIce.g, colFrost.g, t)
-          b = THREE.MathUtils.lerp(colBrightIce.b, colFrost.b, t)
+          color = mixColors(
+            brightIce,
+            frost,
+            (terrain - 0.45) / 0.55
+          )
         }
 
-        // Cracks and crevasses
-        if (chasmNoise > 0.88) {
-          const cT = (chasmNoise - 0.88) / 0.12
-          r = THREE.MathUtils.lerp(r, colChasm.r, cT * 0.7)
-          g = THREE.MathUtils.lerp(g, colChasm.g, cT * 0.7)
-          b = THREE.MathUtils.lerp(b, colChasm.b, cT * 0.7)
+        if (cracks > 0.87) {
+          color.lerp(chasm, (cracks - 0.87) / 0.13 * 0.8)
         }
 
-        const idx = (y * width + x) * 4
-        data[idx] = Math.min(255, Math.floor(r * 255))
-        data[idx + 1] = Math.min(255, Math.floor(g * 255))
-        data[idx + 2] = Math.min(255, Math.floor(b * 255))
-        data[idx + 3] = 255
+        writePixel(data, (y * width + x) * 4, color)
       }
     }
-    ctx.putImageData(imgData, 0, 0)
+  }
 
-  } else if (archetype === 'desert') {
-    // --- DESERT / ARID: Iron-rich sands, dunes, canyon networks ---
-    const imgData = ctx.createImageData(width, height)
-    const data = imgData.data
+  // DESERT PLANET: dunes, dry plains and canyon patterns
+  else if (archetype === 'desert') {
+    const rust = palette.dark.clone().lerp(
+      new THREE.Color('#963d1a'),
+      0.45
+    )
 
-    const colRust = new THREE.Color('#963d1a')
-    const colSand = new THREE.Color('#d9822b')
-    const colOchre = new THREE.Color('#dfad7a')
-    const colCanyon = new THREE.Color('#4c1d0e')
+    const sand = palette.primary.clone().lerp(
+      new THREE.Color('#d9822b'),
+      0.35
+    )
+
+    const ochre = palette.secondary.clone().lerp(
+      new THREE.Color('#dfad7a'),
+      0.4
+    )
+
+    const canyon = new THREE.Color('#4c1d0e')
 
     for (let y = 0; y < height; y++) {
       const v = y / height
+
       for (let x = 0; x < width; x++) {
         const u = x / width
-        const dunes = fbm(noise, u * 8, v * 16, 4) * 0.5 + 0.5
-        const canyon = 1.0 - Math.abs(fbm(noise, u * 6, v * 6, 3))
 
-        let r = THREE.MathUtils.lerp(colRust.r, colSand.r, dunes)
-        let g = THREE.MathUtils.lerp(colRust.g, colSand.g, dunes)
-        let b = THREE.MathUtils.lerp(colRust.b, colSand.b, dunes)
+        const dunes = fbm(noise, u * 8, v * 16, 4) * 0.5 + 0.5
+        const canyonNoise = 1 - Math.abs(
+          fbm(noise, u * 6, v * 6, 3)
+        )
+
+        let color = mixColors(rust, sand, dunes)
 
         if (dunes > 0.7) {
-          const t = (dunes - 0.7) / 0.3
-          r = THREE.MathUtils.lerp(r, colOchre.r, t)
-          g = THREE.MathUtils.lerp(g, colOchre.g, t)
-          b = THREE.MathUtils.lerp(b, colOchre.b, t)
+          color.lerp(ochre, (dunes - 0.7) / 0.3)
         }
 
-        if (canyon > 0.85) {
-          const t = (canyon - 0.85) / 0.15
-          r = THREE.MathUtils.lerp(r, colCanyon.r, t * 0.75)
-          g = THREE.MathUtils.lerp(g, colCanyon.g, t * 0.75)
-          b = THREE.MathUtils.lerp(b, colCanyon.b, t * 0.75)
+        if (canyonNoise > 0.85) {
+          color.lerp(canyon, (canyonNoise - 0.85) / 0.15 * 0.75)
         }
 
-        const idx = (y * width + x) * 4
-        data[idx] = Math.min(255, Math.floor(r * 255))
-        data[idx + 1] = Math.min(255, Math.floor(g * 255))
-        data[idx + 2] = Math.min(255, Math.floor(b * 255))
-        data[idx + 3] = 255
+        writePixel(data, (y * width + x) * 4, color)
       }
     }
-    ctx.putImageData(imgData, 0, 0)
+  }
 
-  } else {
-    // --- TERRESTRIAL / HABITABLE: Oceans, Continents, Mountains, Polar Ice ---
-    const imgData = ctx.createImageData(width, height)
-    const data = imgData.data
+  // TERRESTRIAL PLANET: oceans, land, mountains and polar ice
+  else {
+    const oceanDeep = new THREE.Color('#0b2447')
+    const oceanShallow = new THREE.Color('#19376d')
+    const coast = palette.accent.clone()
 
-    const colOceanDeep = new THREE.Color('#0b2447')
-    const colOceanShallow = new THREE.Color('#19376d')
-    const colCoast = new THREE.Color('#576cbc')
-    const colLandLow = baseRGB.clone().offsetHSL(-0.04, 0.1, -0.05)
-    const colLandMid = new THREE.Color('#4d7c0f')
-    const colMountain = new THREE.Color('#78583c')
-    const colIce = new THREE.Color('#eef7fb')
+    const landLow = palette.primary.clone().offsetHSL(
+      -0.04,
+      0.1,
+      -0.05
+    )
+
+    const landMid = palette.secondary.clone()
+    const mountain = palette.dark.clone()
+    const polarIce = new THREE.Color('#eef7fb')
 
     for (let y = 0; y < height; y++) {
       const v = y / height
+
       const isPolar = v < 0.1 || v > 0.9
-      const polarDist = v < 0.1 ? (0.1 - v) / 0.1 : (v > 0.9 ? (v - 0.9) / 0.1 : 0)
+      const polarDistance = v < 0.1
+        ? (0.1 - v) / 0.1
+        : v > 0.9
+          ? (v - 0.9) / 0.1
+          : 0
 
       for (let x = 0; x < width; x++) {
         const u = x / width
-        const heightVal = fbm(noise, u * 3.5, v * 3.5, 5) * 0.5 + 0.5
 
-        let r, g, b
-        if (heightVal < 0.44) {
-          // Ocean
-          const t = heightVal / 0.44
-          r = THREE.MathUtils.lerp(colOceanDeep.r, colOceanShallow.r, t)
-          g = THREE.MathUtils.lerp(colOceanDeep.g, colOceanShallow.g, t)
-          b = THREE.MathUtils.lerp(colOceanDeep.b, colOceanShallow.b, t)
-          if (heightVal > 0.40) {
-            const coastT = (heightVal - 0.40) / 0.04
-            r = THREE.MathUtils.lerp(r, colCoast.r, coastT * 0.5)
-            g = THREE.MathUtils.lerp(g, colCoast.g, coastT * 0.5)
-            b = THREE.MathUtils.lerp(b, colCoast.b, coastT * 0.5)
+        const terrain = fbm(noise, u * 3.5, v * 3.5, 5) * 0.5 + 0.5
+
+        let color
+
+        if (terrain < 0.44) {
+          color = mixColors(
+            oceanDeep,
+            oceanShallow,
+            terrain / 0.44
+          )
+
+          if (terrain > 0.4) {
+            color.lerp(coast, ((terrain - 0.4) / 0.04) * 0.5)
           }
-        } else if (heightVal < 0.65) {
-          // Lowland / Vegetation
-          const t = (heightVal - 0.44) / 0.21
-          r = THREE.MathUtils.lerp(colLandLow.r, colLandMid.r, t)
-          g = THREE.MathUtils.lerp(colLandLow.g, colLandMid.g, t)
-          b = THREE.MathUtils.lerp(colLandLow.b, colLandMid.b, t)
+        } else if (terrain < 0.65) {
+          color = mixColors(
+            landLow,
+            landMid,
+            (terrain - 0.44) / 0.21
+          )
         } else {
-          // Highlands / Mountains
-          const t = (heightVal - 0.65) / 0.35
-          r = THREE.MathUtils.lerp(colLandMid.r, colMountain.r, t)
-          g = THREE.MathUtils.lerp(colLandMid.g, colMountain.g, t)
-          b = THREE.MathUtils.lerp(colLandMid.b, colMountain.b, t)
+          color = mixColors(
+            landMid,
+            mountain,
+            (terrain - 0.65) / 0.35
+          )
         }
 
-        // Polar ice caps
         if (isPolar) {
-          r = THREE.MathUtils.lerp(r, colIce.r, polarDist * 0.92)
-          g = THREE.MathUtils.lerp(g, colIce.g, polarDist * 0.92)
-          b = THREE.MathUtils.lerp(b, colIce.b, polarDist * 0.92)
+          color.lerp(polarIce, polarDistance * 0.92)
         }
 
-        const idx = (y * width + x) * 4
-        data[idx] = Math.min(255, Math.floor(r * 255))
-        data[idx + 1] = Math.min(255, Math.floor(g * 255))
-        data[idx + 2] = Math.min(255, Math.floor(b * 255))
-        data[idx + 3] = 255
+        writePixel(data, (y * width + x) * 4, color)
       }
     }
-    ctx.putImageData(imgData, 0, 0)
 
-    // Dynamic Swirling Cloud Layer for Terrestrial
+    // Independent cloud layer
     cloudsCanvas = document.createElement('canvas')
     cloudsCanvas.width = width
     cloudsCanvas.height = height
+
     const cloudsCtx = cloudsCanvas.getContext('2d')
-    const cloudsImgData = cloudsCtx.createImageData(width, height)
-    const cData = cloudsImgData.data
+    const cloudImg = cloudsCtx.createImageData(width, height)
+    const cloudData = cloudImg.data
 
     for (let y = 0; y < height; y++) {
       const v = y / height
+
       for (let x = 0; x < width; x++) {
         const u = x / width
-        const cloudNoise = fbm(noise, u * 5 + 3.1, v * 5 + 7.4, 5) * 0.5 + 0.5
-        const idx = (y * width + x) * 4
-        if (cloudNoise > 0.52) {
-          const alpha = Math.min(255, Math.floor(((cloudNoise - 0.52) / 0.48) * 230))
-          cData[idx] = 255
-          cData[idx + 1] = 255
-          cData[idx + 2] = 255
-          cData[idx + 3] = alpha
-        } else {
-          cData[idx + 3] = 0
-        }
+
+        const cloudNoise = fbm(
+          noise,
+          u * 5 + 3.1,
+          v * 5 + 7.4,
+          5
+        ) * 0.5 + 0.5
+
+        const index = (y * width + x) * 4
+
+        cloudData[index] = 255
+        cloudData[index + 1] = 255
+        cloudData[index + 2] = 255
+
+        cloudData[index + 3] = cloudNoise > 0.52
+          ? Math.round(
+              clamp((cloudNoise - 0.52) / 0.48) * 230
+            )
+          : 0
       }
     }
-    cloudsCtx.putImageData(cloudsImgData, 0, 0)
+
+    cloudsCtx.putImageData(cloudImg, 0, 0)
   }
 
-  // Create Three.js CanvasTexture instances
+  ctx.putImageData(imgData, 0, 0)
+
+  // Create Three.js textures
   const texture = new THREE.CanvasTexture(canvas)
   texture.wrapS = THREE.RepeatWrapping
   texture.wrapT = THREE.ClampToEdgeWrapping
+  texture.colorSpace = THREE.SRGBColorSpace
 
   let cloudsTexture = null
+
   if (cloudsCanvas) {
     cloudsTexture = new THREE.CanvasTexture(cloudsCanvas)
     cloudsTexture.wrapS = THREE.RepeatWrapping
     cloudsTexture.wrapT = THREE.ClampToEdgeWrapping
+    cloudsTexture.colorSpace = THREE.SRGBColorSpace
   }
 
   let emissiveTexture = null
+
   if (emissiveCanvas) {
     emissiveTexture = new THREE.CanvasTexture(emissiveCanvas)
     emissiveTexture.wrapS = THREE.RepeatWrapping
     emissiveTexture.wrapT = THREE.ClampToEdgeWrapping
+    emissiveTexture.colorSpace = THREE.SRGBColorSpace
   }
 
   const result = {
@@ -445,11 +535,23 @@ export function generatePlanetTextures(archetype, baseColor = '#8bd6c3', seed = 
     texture,
     cloudsTexture,
     emissiveTexture,
-    roughness: archetype === 'ice' ? 0.25 : archetype === 'gas_giant' ? 0.95 : archetype === 'lava' ? 0.7 : 0.65,
+
+    roughness:
+      archetype === 'ice' ? 0.25 :
+      archetype === 'gas_giant' ? 0.95 :
+      archetype === 'lava' ? 0.7 : 0.65,
+
     metalness: archetype === 'ice' ? 0.15 : 0.04,
+
     emissiveColor: archetype === 'lava' ? '#ff4d00' : '#000000',
     emissiveIntensity: archetype === 'lava' ? 1.6 : 0,
-    atmosphereColor: archetype === 'lava' ? '#ff3b00' : archetype === 'ice' ? '#92d5ff' : archetype === 'gas_giant' ? baseColor : '#6bc5e8',
+
+    atmosphereColor:
+      archetype === 'lava' ? '#ff3b00' :
+      archetype === 'ice' ? '#92d5ff' :
+      archetype === 'gas_giant' ? baseColor :
+      '#6bc5e8',
+
     atmosphereOpacity: archetype === 'gas_giant' ? 0.18 : 0.14,
   }
 
