@@ -59,7 +59,13 @@ INSTRUCTIONS:
 9. Keep answers clear, structured and informative.
 10. If the question is unrelated to exoplanets,
     politely guide the user back to space exploration.
-
+11. Never infer atmospheric thickness, composition,
+    temperature, or surface conditions from mass alone.
+12. Clearly label scientific possibilities as hypotheses,
+    not confirmed facts.
+13. Do not introduce planetary facts that are not present
+    in the supplied data unless clearly identified as
+    general scientific background.
 Give a helpful answer suitable for students
 and people exploring exoplanets.
 """

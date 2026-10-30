@@ -1,8 +1,9 @@
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.routes.planets import router as planets_router
 from app.routes.compare import router as compare_router
+from app.routes.chat import router as chat_router
 app = FastAPI(
     title="ExoVerse API",
     description="NASA Exoplanet Explorer Backend",
@@ -19,7 +20,7 @@ app.add_middleware(
 
 app.include_router(planets_router)
 app.include_router(compare_router)
-
+app.include_router(chat_router)
 @app.get("/api/health")
 def health():
     return {
