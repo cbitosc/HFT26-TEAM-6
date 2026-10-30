@@ -18,6 +18,25 @@ export default function PlanetDetailsPanel({ planet, onNavigate, onCompare }) {
   const formatTemp = (val) => (val != null ? `${val} K` : 'Unmeasured')
   const formatYear = (val) => (val != null ? String(val) : 'Unmeasured')
 
+  const radiusVal = planet.radius_earth || planet.radius || null
+  const massVal = planet.mass_earth || planet.mass || null
+  const tempVal = planet.equilibrium_temperature_k || planet.temperature || null
+  const periodVal = planet.orbital_period_days || planet.period || null
+
+  const surfaceGravity =
+    massVal && radiusVal
+      ? (massVal / Math.pow(radiusVal, 2)).toFixed(2)
+      : null
+
+  // Thermal percentage along track (0 K -> 0%, 273 K -> 35%, 373 K -> 65%, 1500 K -> 95%)
+  const thermalPercent = tempVal
+    ? tempVal < 273
+      ? Math.max(5, (tempVal / 273) * 35)
+      : tempVal <= 373
+      ? 35 + ((tempVal - 273) / 100) * 30
+      : Math.min(95, 65 + (Math.min(tempVal - 373, 1200) / 1200) * 30)
+    : null
+
   // Consistent Habitability terms: Conservative | Optimistic | Hostile (Task #3)
   const hab = planet.habitability || 'Hostile'
   const isConservative = hab.toLowerCase().includes('conservative')
@@ -102,6 +121,101 @@ export default function PlanetDetailsPanel({ planet, onNavigate, onCompare }) {
           <b>{formatYear(planet.discovery_year)}</b>
           <small>Observation record</small>
         </div>
+      </div>
+
+      {/* Visual Goldilocks Thermal Spectrum Instrument */}
+      <div className="thermal-meter-section">
+        <div className="thermal-meter-header">
+          <span>THERMAL SPECTRUM & GOLDILOCKS ZONE</span>
+          <b>{tempVal ? `${tempVal} K (${tempVal - 273}°C)` : 'Unmeasured'}</b>
+        </div>
+        <div className="thermal-meter-track">
+          <div className="thermal-zone thermal-zone-cold" title="Cryogenic Freeze (<273 K)" />
+          <div className="thermal-zone thermal-zone-habitable" title="Liquid Water Habitable Zone (273-373 K)">
+            <span>LIQUID WATER</span>
+          </div>
+          <div className="thermal-zone thermal-zone-hot" title="Scorching Heat (>373 K)" />
+          {thermalPercent != null && (
+            <div
+              className="thermal-indicator"
+              style={{ left: `${thermalPercent}%` }}
+              title={`Equilibrium Temp: ${tempVal} K`}
+            >
+              <div className="thermal-pip" />
+              <span className="thermal-pip-label">{tempVal}K</span>
+            </div>
+          )}
+        </div>
+        <div className="thermal-meter-labels">
+          <span>0 K (Deep Freeze)</span>
+          <span className="label-habitable">273 K - 373 K (Habitable)</span>
+          <span>1000 K+ (Molten)</span>
+        </div>
+      </div>
+
+      {/* Physical Scale Ratios Relative to Earth */}
+      <div className="physical-ratio-bars">
+        <div className="ratio-bar-row">
+          <div className="ratio-label">
+            <span>EQUATORIAL RADIUS</span>
+            <b>{radiusVal ? `${radiusVal} R⊕ (${((radiusVal / 1.0) * 100).toFixed(0)}% of Earth)` : 'Unmeasured'}</b>
+          </div>
+          <div className="ratio-track">
+            <div
+              className="ratio-fill ratio-fill-radius"
+              style={{ width: `${Math.min(100, Math.max(8, ((radiusVal || 1) / 3.5) * 100))}%` }}
+            />
+            <div className="ratio-marker-earth" style={{ left: '28.5%' }} title="Earth Baseline (1.00 R⊕)" />
+          </div>
+        </div>
+
+        {massVal && (
+          <div className="ratio-bar-row">
+            <div className="ratio-label">
+              <span>PLANETARY MASS</span>
+              <b>{`${massVal} M⊕ (${((massVal / 1.0) * 100).toFixed(0)}% of Earth)`}</b>
+            </div>
+            <div className="ratio-track">
+              <div
+                className="ratio-fill ratio-fill-mass"
+                style={{ width: `${Math.min(100, Math.max(8, (massVal / 8) * 100))}%` }}
+              />
+              <div className="ratio-marker-earth" style={{ left: '12.5%' }} title="Earth Baseline (1.00 M⊕)" />
+            </div>
+          </div>
+        )}
+
+        {surfaceGravity && (
+          <div className="ratio-bar-row">
+            <div className="ratio-label">
+              <span>SURFACE GRAVITY</span>
+              <b>{`${surfaceGravity} g (${((parseFloat(surfaceGravity) / 1.0) * 100).toFixed(0)}% of Earth)`}</b>
+            </div>
+            <div className="ratio-track">
+              <div
+                className="ratio-fill ratio-fill-gravity"
+                style={{ width: `${Math.min(100, Math.max(8, (parseFloat(surfaceGravity) / 2.5) * 100))}%` }}
+              />
+              <div className="ratio-marker-earth" style={{ left: '40%' }} title="Earth Gravity (1.00 g)" />
+            </div>
+          </div>
+        )}
+
+        {periodVal && (
+          <div className="ratio-bar-row">
+            <div className="ratio-label">
+              <span>ORBITAL YEAR CYCLE</span>
+              <b>{`${periodVal} Days (${((periodVal / 365.25) * 100).toFixed(0)}% of Earth Year)`}</b>
+            </div>
+            <div className="ratio-track">
+              <div
+                className="ratio-fill ratio-fill-year"
+                style={{ width: `${Math.min(100, Math.max(8, (periodVal / 500) * 100))}%` }}
+              />
+              <div className="ratio-marker-earth" style={{ left: '73%' }} title="Earth Year (365.25 Days)" />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Standardized Habitability Status Card */}

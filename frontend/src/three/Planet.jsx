@@ -3,7 +3,13 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { generatePlanetTextures, getPlanetArchetype } from './planetTextures'
 
-export default function Planet({ planet = null, type = '', color = '#8bd6c3', hasRings = false }) {
+export default function Planet({
+  planet = null,
+  type = '',
+  color = '#8bd6c3',
+  hasRings = false,
+  visionMode = 'visible',
+}) {
   const planetRef = useRef()
   const cloudsRef = useRef()
   const atmosphereRef = useRef()
@@ -63,15 +69,54 @@ export default function Planet({ planet = null, type = '', color = '#8bd6c3', ha
       {/* 1. Base Planet Surface */}
       <mesh ref={planetRef}>
         <sphereGeometry args={[1.5, 64, 64]} />
-        <meshStandardMaterial
-          map={texture}
-          roughness={roughness}
-          metalness={metalness}
-          emissive={emissiveColor}
-          emissiveMap={emissiveTexture || null}
-          emissiveIntensity={emissiveIntensity}
-        />
+        {visionMode === 'thermal' ? (
+          <meshStandardMaterial
+            color={
+              (planet?.equilibrium_temperature_k || 188) > 1000
+                ? '#ff3838'
+                : (planet?.equilibrium_temperature_k || 188) > 350
+                ? '#ff9f1a'
+                : (planet?.equilibrium_temperature_k || 188) > 220
+                ? '#2ed573'
+                : '#1e90ff'
+            }
+            roughness={0.2}
+            metalness={0.8}
+            emissive={
+              (planet?.equilibrium_temperature_k || 188) > 1000
+                ? '#ff4757'
+                : (planet?.equilibrium_temperature_k || 188) > 350
+                ? '#ffa502'
+                : (planet?.equilibrium_temperature_k || 188) > 220
+                ? '#2ed573'
+                : '#00d2d3'
+            }
+            emissiveIntensity={0.65}
+          />
+        ) : (
+          <meshStandardMaterial
+            map={texture}
+            roughness={roughness}
+            metalness={metalness}
+            emissive={emissiveColor}
+            emissiveMap={emissiveTexture || null}
+            emissiveIntensity={emissiveIntensity}
+          />
+        )}
       </mesh>
+
+      {/* 1b. Thermal Latitude Grid Scanner Overlay */}
+      {visionMode === 'thermal' && (
+        <mesh scale={1.004}>
+          <sphereGeometry args={[1.5, 24, 24]} />
+          <meshBasicMaterial
+            color="#ffffff"
+            wireframe
+            transparent
+            opacity={0.18}
+          />
+        </mesh>
+      )}
 
       {/* 2. Dynamic Clouds Layer (for Terrestrial / Habitable worlds) */}
       {cloudsTexture && (
@@ -80,9 +125,24 @@ export default function Planet({ planet = null, type = '', color = '#8bd6c3', ha
           <meshStandardMaterial
             map={cloudsTexture}
             transparent
-            opacity={0.7}
+            opacity={visionMode === 'atmosphere' ? 0.95 : 0.7}
             blending={THREE.NormalBlending}
             depthWrite={false}
+            emissive={visionMode === 'atmosphere' ? '#8bd6c3' : '#000000'}
+            emissiveIntensity={visionMode === 'atmosphere' ? 0.45 : 0}
+          />
+        </mesh>
+      )}
+
+      {/* 2b. Atmospheric Spectroscopy Shell (when in atmosphere mode) */}
+      {visionMode === 'atmosphere' && (
+        <mesh scale={1.055}>
+          <sphereGeometry args={[1.5, 32, 32]} />
+          <meshBasicMaterial
+            color="#8bd6c3"
+            wireframe
+            transparent
+            opacity={0.3}
           />
         </mesh>
       )}
