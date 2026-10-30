@@ -2,11 +2,26 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Html, OrbitControls, Stars } from '@react-three/drei'
 import * as THREE from 'three'
-import { Info, RotateCcw, Sparkles } from 'lucide-react'
 import Planet from './Planet'
-import { getPlanetArchetype } from './planetTextures'
 
-// Smooth camera controller that transitions smoothly and then releases control so the user can zoom and orbit freely
+// Shifts camera projection so the focal planet is centered in the left 58% unobstructed viewport
+function ResponsiveViewOffset() {
+  const { camera, size } = useThree()
+
+  useEffect(() => {
+    const panelWidth = size.width > 900 ? Math.min(440, size.width * 0.42) : 0
+    if (panelWidth > 0) {
+      camera.setViewOffset(size.width, size.height, panelWidth / 2, 0, size.width, size.height)
+    } else {
+      camera.clearViewOffset()
+    }
+    camera.updateProjectionMatrix()
+  }, [camera, size.width, size.height])
+
+  return null
+}
+
+// Smooth camera controller: glides on planet change, then frees OrbitControls for 360° mouse navigation
 function CameraController({
   targetPosition,
   planetKey,
@@ -26,7 +41,6 @@ function CameraController({
       prevPlanetKey.current = planetKey
       setIsTransitioning(true)
 
-      // Fallback timeout to ensure free control is always restored within 1.2s
       if (transitionTimer.current) clearTimeout(transitionTimer.current)
       transitionTimer.current = setTimeout(() => {
         setIsTransitioning(false)
@@ -37,7 +51,6 @@ function CameraController({
     }
   }, [planetKey])
 
-  // When reset is initiated, clear active tracking
   useEffect(() => {
     if (isResetting) {
       prevPlanetKey.current = null
@@ -49,36 +62,34 @@ function CameraController({
     if (!controlsRef.current) return
 
     if (isResetting) {
-      const defaultCam = new THREE.Vector3(0, 11, 24)
+      // Return to system overview: host star centered in open left viewport
+      const defaultCam = new THREE.Vector3(0, 12, 26)
       const defaultLook = new THREE.Vector3(0, 0, 0)
-      camera.position.lerp(defaultCam, delta * 3.2)
-      controlsRef.current.target.lerp(defaultLook, delta * 3.2)
+      camera.position.lerp(defaultCam, delta * 3.5)
+      controlsRef.current.target.lerp(defaultLook, delta * 3.5)
       controlsRef.current.update()
 
       if (camera.position.distanceTo(defaultCam) < 0.25) {
         onResetComplete()
       }
     } else if (isTransitioning && targetPosition) {
-      // Calculate a comfortable, cinematic viewing distance based on planet size
-      // (ensures the planet is framed with breathing room and not right in the user's face)
-      const distOffset = Math.max(6.5, planetScale * 4.8 + 2.4)
+      // Calculate comfortable viewing distance based on planet radius/rings
+      const distOffset = Math.max(6.8, planetScale * 5.0 + 2.5)
       const targetLookAt = new THREE.Vector3(...targetPosition)
       const targetCam = new THREE.Vector3(
-        targetPosition[0] + distOffset * 0.42,
-        targetPosition[1] + distOffset * 0.28,
-        targetPosition[2] + distOffset * 0.86
+        targetPosition[0] + distOffset * 0.35,
+        targetPosition[1] + distOffset * 0.30,
+        targetPosition[2] + distOffset * 0.88
       )
 
-      camera.position.lerp(targetCam, delta * 3.0)
-      controlsRef.current.target.lerp(targetLookAt, delta * 3.0)
+      camera.position.lerp(targetCam, delta * 3.2)
+      controlsRef.current.target.lerp(targetLookAt, delta * 3.2)
       controlsRef.current.update()
 
       if (camera.position.distanceTo(targetCam) < 0.18) {
         setIsTransitioning(false)
       }
     }
-    // When NOT transitioning and NOT resetting, OrbitControls has 100% free control!
-    // The user can freely scroll to zoom in/out and drag to orbit from any angle without fighting the camera!
   })
 
   return null
@@ -218,23 +229,30 @@ export default function PlanetScene({
   planet = null,
   color = '#8bd6c3',
   type = '',
+  resetSignal = 0,
 }) {
   const controlsRef = useRef()
   const [isResetting, setIsResetting] = useState(false)
+  const prevResetSignal = useRef(resetSignal)
+
+  // Listen to external reset requests from UI
+  useEffect(() => {
+    if (resetSignal > prevResetSignal.current) {
+      prevResetSignal.current = resetSignal
+      setIsResetting(true)
+    }
+  }, [resetSignal])
 
   // Current active planet
   const activePlanet = selectedPlanet || planet
   const activeColor = activePlanet?.color || color || '#8bd6c3'
-  const archetype = getPlanetArchetype(activePlanet, type)
 
   // Determine multi-planet system positions
   const systemPlanets = useMemo(() => {
     if (!planets || planets.length === 0) return null
 
     return planets.map((p, idx) => {
-      // Stagger orbital radii smoothly
       const orbitRadius = 4.2 + idx * 2.5
-      // Distribute angles around host star
       const angle = idx * 1.3 + 0.35
       const x = Math.cos(angle) * orbitRadius
       const z = Math.sin(angle) * orbitRadius
@@ -253,49 +271,40 @@ export default function PlanetScene({
     })
   }, [planets])
 
-  // Selected planet's position & scale for framing
+  // Selected planet's position & scale for camera framing
   const selectedNode = useMemo(() => {
     if (!systemPlanets || !activePlanet) return null
     return systemPlanets.find((item) => item.planet.name === activePlanet.name) || null
   }, [systemPlanets, activePlanet])
 
-  const handleResetCamera = () => {
-    setIsResetting(true)
-  }
-
-  const archetypeNameMap = {
-    terrestrial: 'Terrestrial World',
-    gas_giant: 'Gas Giant (Jovian)',
-    lava: 'Lava World (Volcanic)',
-    ice: 'Cryoplanet (Ice World)',
-    desert: 'Arid / Desert World',
-  }
-
   return (
     <div className="scene-canvas">
       <Canvas
-        camera={{ position: [0, 11, 24], fov: 45 }}
+        camera={{ position: [0, 12, 26], fov: 45 }}
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
       >
-        <color attach="background" args={['#0c1015']} />
+        <color attach="background" args={['#080c10']} />
+
+        {/* View offset so planet is centered in the open left observatory viewport */}
+        <ResponsiveViewOffset />
 
         {/* Ambient & Rim Lighting */}
         <ambientLight intensity={0.45} />
         <directionalLight position={[6, 8, 6]} intensity={2.2} />
         <directionalLight position={[-6, -4, -6]} intensity={0.35} color="#85a3cf" />
 
-        {/* Starfield */}
+        {/* Deep Field Starfield */}
         <Stars
           radius={95}
           depth={60}
-          count={2400}
+          count={2600}
           factor={3.8}
           saturation={0.35}
           fade
           speed={0.4}
         />
 
-        {/* Camera lerp controller: transitions only on planet change, then frees OrbitControls */}
+        {/* Camera flight controller */}
         <CameraController
           targetPosition={selectedNode?.position || null}
           planetKey={activePlanet?.name || null}
@@ -305,7 +314,7 @@ export default function PlanetScene({
           controlsRef={controlsRef}
         />
 
-        {/* Multi-planet system or single-planet mode */}
+        {/* Multi-planet system or single-planet preview */}
         {systemPlanets ? (
           <group>
             {/* Host Star & Sunlight */}
@@ -334,7 +343,6 @@ export default function PlanetScene({
             ))}
           </group>
         ) : (
-          /* Focused Single Planet preview */
           <group>
             <Planet
               planet={activePlanet}
@@ -345,7 +353,7 @@ export default function PlanetScene({
           </group>
         )}
 
-        {/* Camera Orbit Controls: Free zooming and panning enabled with smooth damping */}
+        {/* Camera Orbit Controls: Free zooming and panning with smooth damping */}
         <OrbitControls
           ref={controlsRef}
           enablePan={true}
@@ -359,31 +367,6 @@ export default function PlanetScene({
           rotateSpeed={0.7}
         />
       </Canvas>
-
-      {/* Floating Canvas UI Controls & Header */}
-      <div className="scene-overlay-controls">
-        <div className="scene-archetype-tag">
-          <Sparkles size={11} />
-          <span>{archetypeNameMap[archetype] || 'Exoplanet'}</span>
-        </div>
-
-        <button
-          type="button"
-          className="scene-reset-btn"
-          onClick={handleResetCamera}
-          title="Reset Camera View to System Overview"
-          aria-label="Reset Camera"
-        >
-          <RotateCcw size={12} />
-          <span>Reset Camera</span>
-        </button>
-      </div>
-
-      {/* Illustrative Scale Disclaimer Note */}
-      <div className="scene-illustrative-banner">
-        <Info size={11} />
-        <span>Appearance and size are illustrative, not to scale. Click any planet to focus.</span>
-      </div>
     </div>
   )
 }
