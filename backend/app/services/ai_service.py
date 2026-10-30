@@ -1,46 +1,68 @@
 
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv
 from openai import OpenAI
 
-load_dotenv()
+
+# Load API key from backend/.env
+BASE_DIR = Path(__file__).resolve().parents[2]
+load_dotenv(BASE_DIR / ".env")
+
+
+# Featherless AI configuration
+API_KEY = os.getenv("FEATHERLESS_API_KEY")
+
+if not API_KEY:
+    raise ValueError(
+        "FEATHERLESS_API_KEY not found. Check backend/.env"
+    )
 
 client = OpenAI(
     base_url="https://api.featherless.ai/v1",
-    api_key=os.getenv("FEATHERLESS_API_KEY")
+    api_key=API_KEY
 )
 
 MODEL = "Qwen/Qwen2.5-7B-Instruct"
 
 
 def ask_astronomer(question, planet_data):
-
-    
-    prompt = f"""
-    You are ExoVerse AI Astronomer, an expert
-    assistant for exploring exoplanets.
-
-    PLANET DATA:
-    {planet_data}
-
-    USER QUESTION:
-    {question}
-
-    RULES:
-    1. Use the supplied planet data as your source
-       for specific planetary measurements.
-    2. Never invent missing values.
-    3. Do not assume a planet is habitable based
-       only on its orbital period or radius.
-    4. Explain scientific concepts in simple language.
-    5. Clearly distinguish known facts from
-       scientific possibilities.
-    6. Never claim that a planet contains life.
-    7. If information is insufficient, say so.
-
-    Give a complete, clear and structured answer.
+    """
+    Generate an exoplanet-related answer using
+    Featherless AI and the supplied planet data.
     """
 
+    prompt = f"""
+You are ExoVerse AI Astronomer, a scientific assistant
+inside an interactive 3D exoplanet explorer.
+
+PLANET DATA:
+{planet_data}
+
+USER QUESTION:
+{question}
+
+INSTRUCTIONS:
+
+1. Answer using the supplied planet data.
+2. Explain scientific terms in simple language.
+3. Never invent missing planetary measurements.
+4. If a value is unavailable, clearly mention it.
+5. Explain whether a planet may have conditions
+   suitable for life, without claiming it is habitable.
+6. Never claim that life exists on an exoplanet.
+7. If asked about Earth comparison, explain
+   similarities and differences using available data.
+8. Distinguish confirmed scientific facts from
+   possibilities and hypotheses.
+9. Keep answers clear, structured and informative.
+10. If the question is unrelated to exoplanets,
+    politely guide the user back to space exploration.
+
+Give a helpful answer suitable for students
+and people exploring exoplanets.
+"""
 
     response = client.chat.completions.create(
         model=MODEL,
