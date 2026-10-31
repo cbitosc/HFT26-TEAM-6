@@ -25,6 +25,7 @@ export default function ExportReportModal({
   const [format, setFormat] = useState('pdf') // 'pdf' | 'docx' | 'zip'
   const [scope, setScope] = useState('active') // 'active' | 'compare' | 'habitable' | 'all'
   const [sections, setSections] = useState({
+    summary: true,
     telemetry: true,
     habitability: true,
     benchmark: true,
@@ -83,15 +84,15 @@ export default function ExportReportModal({
       minute: '2-digit',
     })
 
-    let title = 'ExoVerse Planetary Dossier'
+    let title = 'AETHER Planetary Dossier'
     if (scope === 'active') {
-      title = `ExoVerse Dossier · ${activePlanet.name}`
+      title = `AETHER Dossier · ${activePlanet.name}`
     } else if (scope === 'compare') {
-      title = `Comparative Analysis · ${activePlanet.name} vs Earth`
+      title = `AETHER Comparative Analysis · ${activePlanet.name} vs Earth`
     } else if (scope === 'habitable') {
-      title = `ExoVerse Habitable Zone Candidates (${targetPlanets.length} Worlds)`
+      title = `AETHER Habitable Zone Candidates (${targetPlanets.length} Worlds)`
     } else if (scope === 'all') {
-      title = `ExoVerse Complete Exoplanet Catalogue (${targetPlanets.length} Worlds)`
+      title = `AETHER Complete Exoplanet Catalogue (${targetPlanets.length} Worlds)`
     }
 
     try {
@@ -228,6 +229,21 @@ export default function ExportReportModal({
               <span>Included Intelligence Sections</span>
             </label>
             <div className="export-checkbox-grid">
+              <label className="export-check-item">
+                <input
+                  type="checkbox"
+                  checked={sections.summary}
+                  onChange={() => handleToggleSection('summary')}
+                />
+                <span className="custom-check-box">
+                  {sections.summary && <Check size={12} />}
+                </span>
+                <span className="check-text">
+                  <b>Executive Summary & Astrobiological Synthesis</b>
+                  <small>Scientific narrative, liquid water window evaluation, and physical scale synthesis</small>
+                </span>
+              </label>
+
               <label className="export-check-item">
                 <input
                   type="checkbox"

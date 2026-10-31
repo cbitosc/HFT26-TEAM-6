@@ -449,7 +449,7 @@ export default function ComparePage({
 
       {/* Footer */}
       <footer className="page-footer">
-        <span>EXOVERSE COMPARATIVE LAB <i>·</i> RECHARTS DATA VISUALIZER</span>
+        <span>AETHER COMPARATIVE LAB <i>·</i> RECHARTS DATA VISUALIZER</span>
         <span>Appearance and size are illustrative, not to scale. Actual measurements derived from NASA Exoplanet Archive.</span>
       </footer>
     </div>

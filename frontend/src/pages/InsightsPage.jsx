@@ -432,7 +432,7 @@ export default function InsightsPage({
 
       {/* Footer */}
       <footer className="page-footer">
-        <span>EXOVERSE HABITABILITY LAB <i>·</i> PLANETARY HABITABILITY LABORATORY METHODS</span>
+        <span>AETHER HABITABILITY LAB <i>·</i> PLANETARY HABITABILITY LABORATORY METHODS</span>
         <span>Habitability indicators describe orbital mechanics and potential, not biological proof.</span>
       </footer>
     </div>

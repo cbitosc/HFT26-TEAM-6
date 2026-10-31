@@ -78,7 +78,7 @@ export default function AstronomerPage({
     {
       id: 'welcome',
       role: 'assistant',
-      text: `Greetings, Observer. I am the **ExoVerse AI Astronomer**, connected to observational data from NASA's Exoplanet Archive.\n\nI can analyze atmospheric retention, tidal locking dynamics, orbital mechanics, and habitability constraints for any known exoplanet.\n\n*Rule of Observation: Habitability indicators describe physical orbital conditions, not biological proof of life.*`,
+      text: `Greetings, Observer. I am the **AETHER AI Astronomer**, connected to observational data from NASA's Exoplanet Archive.\n\nI can analyze atmospheric retention, tidal locking dynamics, orbital mechanics, and habitability constraints for any known exoplanet.\n\n*Rule of Observation: Habitability indicators describe physical orbital conditions, not biological proof of life.*`,
       timestamp: 'Just now',
     },
   ])
@@ -458,7 +458,7 @@ export default function AstronomerPage({
       </div>
 
       <footer className="page-footer">
-        <span>EXOVERSE AI ASTRONOMER <i>·</i> FEATHERLESS AI POWERED</span>
+        <span>AETHER AI ASTRONOMER <i>·</i> FEATHERLESS AI POWERED</span>
         <span>Habitability indicators describe orbital mechanics and potential, not proof of life.</span>
       </footer>
     </div>
