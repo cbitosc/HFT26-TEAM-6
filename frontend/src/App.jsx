@@ -1,19 +1,33 @@
+
 import { useEffect, useMemo, useState } from 'react'
 import {
-  Activity, ArrowDownRight, ArrowUpRight, ChevronDown, CircleHelp,
-  Compass, Command, Globe2, Menu, Orbit, Search, SlidersHorizontal,
-  Sparkles, Telescope, X,
+  Activity,
+  ArrowDownRight,
+  ChevronDown,
+  CircleHelp,
+  Compass,
+  Command,
+  Globe2,
+  Menu,
+  Orbit,
+  Search,
+  Sparkles,
+  X,
 } from 'lucide-react'
+
 import ObservatoryStage from './components/ObservatoryStage'
-import PlanetDetailsPanel from './components/PlanetDetailsPanel'
+import DidYouKnow from './components/DidYouKnow'
 import ExplorerPage from './pages/ExplorerPage'
 import ComparePage from './pages/ComparePage'
 import InsightsPage from './pages/InsightsPage'
 import AstronomerPage from './pages/AstronomerPage'
-import { getPlanets, INITIAL_PLANETS } from './services/api'
+import { getPlanetsPage, INITIAL_PLANETS } from './services/api'
+
 import './App.css'
 import './Palette.css'
 import './pages/Explorer.css'
+
+const PAGE_SIZE = 100
 
 const navItems = [
   { label: 'Overview', icon: Globe2 },
@@ -30,52 +44,141 @@ export default function App() {
   const [selected, setSelected] = useState(INITIAL_PLANETS[0])
   const [menuOpen, setMenuOpen] = useState(false)
 
-  // Fetch from FastAPI backend (or keep NASA mock catalogue fallback)
+  const [totalPlanets, setTotalPlanets] = useState(INITIAL_PLANETS.length)
+  const [loadingPlanets, setLoadingPlanets] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+
+  const [searchResults, setSearchResults] = useState([])
+  const [searching, setSearching] = useState(false)
+
+  const [compareData, setCompareData] = useState(null)
+
+  // Load the first 100 planets from NASA.
   useEffect(() => {
     let isMounted = true
-    getPlanets().then((data) => {
-      if (isMounted && Array.isArray(data) && data.length > 0) {
-        setWorlds(data)
-        if (!selected) setSelected(data[0])
+
+    async function loadInitialPlanets() {
+      setLoadingPlanets(true)
+
+      const result = await getPlanetsPage({
+        limit: PAGE_SIZE,
+        offset: 0,
+      })
+
+      if (!isMounted) return
+
+      if (result.data.length > 0) {
+        setWorlds(result.data)
+        setTotalPlanets(result.total)
+        setSelected(result.data[0])
       }
-    })
+
+      setLoadingPlanets(false)
+    }
+
+    loadInitialPlanets()
+
     return () => {
       isMounted = false
     }
   }, [])
 
-  const visibleWorlds = useMemo(() => {
-    const q = query.toLowerCase().trim()
-    if (!q) return worlds
-    return worlds.filter((world) => {
-      const name = world.name.toLowerCase()
-      const star = (world.host_star || world.star || '').toLowerCase()
-      const type = (world.planet_type || world.type || '').toLowerCase()
-      return name.includes(q) || star.includes(q) || type.includes(q)
-    })
-  }, [worlds, query])
+  // Search the complete NASA catalogue.
+  useEffect(() => {
+    let isMounted = true
+    const searchText = query.trim()
 
-  const [compareData, setCompareData] = useState(null)
+    if (!searchText) {
+      setSearchResults([])
+      setSearching(false)
+      return
+    }
+
+    setSearching(true)
+
+    const timer = setTimeout(async () => {
+      const result = await getPlanetsPage({
+        limit: 20,
+        offset: 0,
+        search: searchText,
+      })
+
+      if (isMounted) {
+        setSearchResults(result.data)
+        setSearching(false)
+      }
+    }, 400)
+
+    return () => {
+      isMounted = false
+      clearTimeout(timer)
+    }
+  }, [query])
+
+  // Show NASA search results when searching.
+  const visibleWorlds = useMemo(() => {
+    return query.trim() ? searchResults : worlds
+  }, [query, searchResults, worlds])
+
+  // Load the next 100 planets.
+  async function loadMorePlanets() {
+    if (loadingMore || worlds.length >= totalPlanets) return
+
+    setLoadingMore(true)
+
+    try {
+      const result = await getPlanetsPage({
+        limit: PAGE_SIZE,
+        offset: worlds.length,
+      })
+
+      if (result.data.length > 0) {
+        setWorlds((previous) => {
+          const existingIds = new Set(previous.map((planet) => planet.id))
+
+          const newPlanets = result.data.filter(
+            (planet) => !existingIds.has(planet.id)
+          )
+
+          return [...previous, ...newPlanets]
+        })
+
+        setTotalPlanets(result.total)
+      }
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   function navigate(name, data = null) {
     setPage(name)
+
     if (name === 'Astronomer' && data?.planetA && data?.planetB) {
       setCompareData(data)
     } else if (data && data.name) {
       setSelected(data)
     }
+
     setMenuOpen(false)
   }
+
+  const hasMore = worlds.length < totalPlanets
 
   return (
     <div className="app-shell">
       <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
         <button className="brand" onClick={() => navigate('Overview')}>
-          <span className="brand-mark"><Orbit size={20} strokeWidth={1.7} /></span>
-          <span><strong>EXOVERSE</strong><small>FIELD NOTES · 01</small></span>
+          <span className="brand-mark">
+            <Orbit size={20} strokeWidth={1.7} />
+          </span>
+          <span>
+            <strong>AETHER</strong>
+            <small>WHERE CURIOSITY MEETS THE COSMOS</small>
+          </span>
         </button>
 
         <div className="side-caption">WORKSPACE</div>
+
         <nav className="side-nav" aria-label="Main navigation">
           {navItems.map(({ label, icon: Icon }, index) => (
             <button
@@ -98,10 +201,18 @@ export default function App() {
               <small>NASA Catalogue synced</small>
             </div>
           </div>
-          <button className="help-link"><CircleHelp size={16} />About this project</button>
+
+          <button className="help-link">
+            <CircleHelp size={16} />
+            About this project
+          </button>
+
           <div className="profile">
             <div className="profile-avatar">S</div>
-            <span><b>Research desk</b><small>Independent observer</small></span>
+            <span>
+              <b>Research desk</b>
+              <small>Independent observer</small>
+            </span>
             <ChevronDown size={15} />
           </div>
         </div>
@@ -116,16 +227,19 @@ export default function App() {
           >
             {menuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
+
           <div className="breadcrumbs">
             <span>CATALOGUE</span>
             <i>/</i>
             <b>{page.toUpperCase()}</b>
           </div>
+
           <div className="top-actions">
             <span className="data-note">
               <span className="status-dot" />
               NASA ARCHIVE ACTIVE
             </span>
+
             <button className="command-key" aria-label="Search">
               <Command size={14} />
               <span>K</span>
@@ -142,6 +256,12 @@ export default function App() {
             query={query}
             setQuery={setQuery}
             onNavigate={navigate}
+            totalPlanets={totalPlanets}
+            loadingMore={loadingMore}
+            hasMore={hasMore}
+            onLoadMore={loadMorePlanets}
+            loadingPlanets={loadingPlanets}
+            searching={searching}
           />
         ) : page === 'Compare' ? (
           <ComparePage
@@ -166,91 +286,137 @@ export default function App() {
           <div className="content-wrap">
             <section className="page-heading">
               <div>
-                <div className="eyebrow">THE EXOPLANET FIELD GUIDE <span>—</span> VOL. 01</div>
-                <h1>Worlds beyond <em>our own.</em></h1>
-                <p>A living 3D catalogue of exoplanets mapped from NASA observational missions.</p>
+                <div className="eyebrow">
+                AETHER 
+                </div>
+
+                <h2>
+                  WHERE CURIOSITY MEETS THE COSMOS
+                </h2>
+
+                <p>
+                  A living 3D catalogue of exoplanets mapped from NASA
+                  observational missions.
+                </p>
               </div>
+
               <div className="heading-index">
                 <span>CATALOGUE WORLDS</span>
-                <b>{String(worlds.length).padStart(2, '0')}</b>
+                <b>{totalPlanets.toLocaleString('en-IN')}</b>
                 <small>confirmed entries</small>
               </div>
             </section>
 
-            {/* Unified Organic Observatory Stage */}
             <ObservatoryStage
               planets={visibleWorlds}
               selectedPlanet={selected}
               onSelectPlanet={setSelected}
               onNavigate={navigate}
-              onCompare={(p) => navigate('Compare', p)}
+              onCompare={(planet) => navigate('Compare', planet)}
               statusLabel="OPTICAL TELEMETRY · FIELD OBSERVATION"
             />
-
-            {/* Observation Log Table */}
+            <DidYouKnow />
             <section className="catalogue-section">
               <div className="catalogue-heading">
                 <div>
-                  <div className="eyebrow">OBSERVATION LOG <span>—</span> CONFIRMED TARGETS</div>
+                  <div className="eyebrow">
+                    OBSERVATION LOG <span>—</span> CONFIRMED TARGETS
+                  </div>
                   <h3>Worlds to know</h3>
                 </div>
+
                 <label className="search-box">
                   <Search size={16} />
+
                   <input
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="Find a world, host star, or planet type..."
                   />
+
                   <span>⌘ K</span>
                 </label>
               </div>
 
+              {searching && (
+                <p className="loading-message">
+                  Searching the NASA catalogue...
+                </p>
+              )}
+
+              {loadingPlanets && (
+                <p className="loading-message">
+                  Loading confirmed exoplanets...
+                </p>
+              )}
+
               <div className="world-list">
-                {visibleWorlds.length ? (
+                {visibleWorlds.length > 0 ? (
                   visibleWorlds.map((world, index) => (
                     <button
-                      className={`world-row ${selected.name === world.name ? 'world-selected' : ''}`}
-                      key={world.name}
+                      className={`world-row ${
+                        selected?.name === world.name ? 'world-selected' : ''
+                      }`}
+                      key={world.id || world.name}
                       onClick={() => setSelected(world)}
                     >
                       <span className="row-number">
                         {String(index + 1).padStart(2, '0')}
                       </span>
-                      <span className="world-orb" style={{ '--orb-color': world.color }} />
+
+                      <span
+                        className="world-orb"
+                        style={{ '--orb-color': world.color || '#8bd6c3' }}
+                      />
+
                       <span className="world-name">
                         <b>{world.name}</b>
-                        <small>{world.planet_type || world.type}</small>
+                        <small>{world.planet_type || world.type || 'Exoplanet'}</small>
                       </span>
-                      <span className="world-host">{world.host_star || world.star}</span>
+
+                      <span className="world-host">
+                        {world.host_star || world.star || 'Unknown star'}
+                      </span>
+
                       <span className="world-distance">
-                        {world.distance_pc != null ? `${world.distance_pc} pc` : world.distance}
+                        {world.distance_pc != null
+                          ? `${world.distance_pc} pc`
+                          : world.distance ?? 'Unknown'}
                       </span>
+
                       <span className="row-arrow">
                         <ArrowDownRight size={16} />
                       </span>
                     </button>
                   ))
-                ) : (
+                ) : !searching && !loadingPlanets ? (
                   <div className="empty-state">
-                    No worlds match “{query}”. Try searching by star name or planet type.
+                    No worlds match "{query}"
                   </div>
-                )}
+                ) : null}
               </div>
 
-              <div className="catalogue-foot">
-                <span>
-                  SHOWING {visibleWorlds.length} OF {worlds.length} MAPPED WORLDS
-                </span>
-                <button onClick={() => navigate('Explore')}>
-                  Browse 3D System Explorer <ArrowUpRight size={14} />
-                </button>
-              </div>
+              {!query.trim() && hasMore && (
+                <div className="load-more-container">
+                  <button
+                    className="load-more-button"
+                    onClick={loadMorePlanets}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore
+                      ? 'Loading more worlds...'
+                      : `Load More (${worlds.length} of ${totalPlanets.toLocaleString('en-IN')})`}
+                  </button>
+                </div>
+              )}
+
+              {!query.trim() && !hasMore && worlds.length > 0 && (
+                <p className="catalogue-complete">
+                  All {totalPlanets.toLocaleString('en-IN')} confirmed worlds
+                  loaded.
+                </p>
+              )}
             </section>
-
-            <footer className="page-footer">
-              <span>EXOVERSE FIELD GUIDE <i>·</i> A WINDOW INTO OTHER SYSTEMS</span>
-              <span>Appearance and size are illustrative, not to scale. Actual measurements derived from NASA data.</span>
-            </footer>
           </div>
         )}
       </main>

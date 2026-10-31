@@ -246,7 +246,7 @@ export default function AstronomerPage({
           <div className="eyebrow">
             ASTROPHYSICAL INTELLIGENCE <span>—</span> FEATHERLESS INTEGRATION
           </div>
-          <h1>ExoVerse AI <em>Astronomer.</em></h1>
+          <h1>AETHER AI <em>Astronomer.</em></h1>
           <p>
             Engage in rigorous scientific discourse grounded in NASA Exoplanet Archive measurements.
           </p>

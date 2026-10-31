@@ -11,6 +11,7 @@ import {
 import PlanetScene from '../three/PlanetScene'
 import PlanetDetailsPanel from '../components/PlanetDetailsPanel'
 import SearchAutocomplete from '../components/SearchAutocomplete'
+import PlanetThumbnail from '../components/PlanetThumbnail'
 
 export default function ExplorerPage({
   worlds,
@@ -20,7 +21,17 @@ export default function ExplorerPage({
   query,
   setQuery,
   onNavigate,
+  totalPlanets = worlds.length,
+  loadingMore = false,
+  hasMore = false,
+  onLoadMore,
+  loadingPlanets = false,
+  searching = false,
 }) {
+  const selectedIndex = worlds.findIndex(
+    (world) => world.id === selected?.id
+  )
+
   return (
     <div className="content-wrap explore-page">
       {/* Header */}
@@ -40,13 +51,13 @@ export default function ExplorerPage({
         </div>
 
         <div className="heading-index">
-          <span>IN THIS SYSTEM</span>
-          <b>{String(visibleWorlds.length).padStart(2, '0')}</b>
-          <small>worlds mapped</small>
+          <span>CONFIRMED PLANETS</span>
+          <b>{totalPlanets.toLocaleString('en-IN')}</b>
+          <small>NASA archive entries</small>
         </div>
       </section>
 
-      {/* Interactive YouTube-style Search Autocomplete with Live Auto-Updating Details */}
+      {/* Search Autocomplete */}
       <SearchAutocomplete
         query={query}
         setQuery={setQuery}
@@ -66,33 +77,32 @@ export default function ExplorerPage({
             </span>
 
             <span className="scene-index">
-              {String(
-                worlds.findIndex(
-                  (world) => world.name === selected.name
-                ) + 1
-              ).padStart(2, '0')}
+              {selectedIndex >= 0
+                ? String(selectedIndex + 1).padStart(2, '0')
+                : '--'}
 
               <i> / </i>
 
-              {String(worlds.length).padStart(2, '0')}
+              {worlds.length.toLocaleString('en-IN')}
             </span>
           </div>
 
           <div
             className="planet-stage"
-            style={{ '--world-color': selected.color }}
+            style={{
+              '--world-color': selected?.color || '#8bd6c3',
+            }}
           >
             <div className="orbit-ring orbit-ring-one" />
             <div className="orbit-ring orbit-ring-two" />
             <div className="scene-glow" />
 
-            {/* Render only the currently selected planet */}
             <PlanetScene
               planets={null}
               selectedPlanet={selected}
               onSelectPlanet={setSelected}
-              color={selected.color}
-              type={selected.planet_type || selected.type}
+              color={selected?.color || '#8bd6c3'}
+              type={selected?.planet_type || selected?.type || ''}
             />
           </div>
 
@@ -129,23 +139,38 @@ export default function ExplorerPage({
           </div>
 
           <span className="results-count">
-            {visibleWorlds.length}{' '}
-            {visibleWorlds.length === 1 ? 'RESULT' : 'RESULTS'}
+            {query.trim()
+              ? `${visibleWorlds.length} SEARCH RESULTS`
+              : `${worlds.length} OF ${totalPlanets.toLocaleString('en-IN')} LOADED`}
           </span>
         </div>
+
+        {searching && (
+          <p className="loading-message">
+            Searching the complete NASA catalogue...
+          </p>
+        )}
+
+        {loadingPlanets && (
+          <p className="loading-message">
+            Loading confirmed exoplanets...
+          </p>
+        )}
 
         {visibleWorlds.length > 0 ? (
           <div className="target-grid">
             {visibleWorlds.map((world, index) => {
-              const isSelected = selected.name === world.name
+              const isSelected = selected?.id === world.id
 
               return (
                 <button
-                  key={world.name}
+                  key={world.id || world.name}
                   className={`target-card ${
                     isSelected ? 'target-active' : ''
                   }`}
-                  style={{ '--orb-color': world.color }}
+                  style={{
+                    '--orb-color': world.color || '#8bd6c3',
+                  }}
                   onClick={() => setSelected(world)}
                 >
                   <span className="target-top">
@@ -154,17 +179,14 @@ export default function ExplorerPage({
 
                       <i>
                         {' '}
-                        / {String(worlds.length).padStart(2, '0')}
+                        / {visibleWorlds.length.toLocaleString('en-IN')}
                       </i>
                     </span>
 
                     <ArrowUpRight size={15} />
                   </span>
 
-                  <span
-                    className="target-planet"
-                    style={{ '--orb-color': world.color }}
-                  />
+                  <PlanetThumbnail planet={world} />
 
                   <b className="target-name">
                     {world.name}
@@ -180,7 +202,7 @@ export default function ExplorerPage({
                     </span>
 
                     <span>
-                      {world.distance_pc
+                      {world.distance_pc != null
                         ? `${world.distance_pc} pc`
                         : world.distance || 'Unknown distance'}
                     </span>
@@ -189,10 +211,31 @@ export default function ExplorerPage({
               )
             })}
           </div>
-        ) : (
+        ) : !searching && !loadingPlanets ? (
           <div className="empty-state">
             No worlds match "{query}"
           </div>
+        ) : null}
+
+        {/* Load More */}
+        {!query.trim() && hasMore && (
+          <div className="load-more-container">
+            <button
+              className="load-more-button"
+              onClick={onLoadMore}
+              disabled={loadingMore}
+            >
+              {loadingMore
+                ? 'Loading more worlds...'
+                : `Load More Worlds (${worlds.length} / ${totalPlanets.toLocaleString('en-IN')})`}
+            </button>
+          </div>
+        )}
+
+        {!query.trim() && !hasMore && worlds.length > 0 && (
+          <p className="catalogue-complete">
+            All {totalPlanets.toLocaleString('en-IN')} confirmed planets loaded.
+          </p>
         )}
       </section>
     </div>

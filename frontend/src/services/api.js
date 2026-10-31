@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const API_BASE_URL = 'http://127.0.0.1:8000'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -171,23 +171,68 @@ export const INITIAL_PLANETS = [
 ]
 
 // API Endpoints with graceful mock fallback
-export async function getPlanets() {
+
+// API Endpoints with graceful mock fallback
+
+// Fetch one page from the NASA catalogue.
+// Search is performed by the backend against the full NASA catalogue.
+export async function getPlanetsPage({
+  limit = 100,
+  offset = 0,
+  search = '',
+} = {}) {
   try {
-    const res = await api.get('/api/planets')
+    const res = await api.get('/api/planets', {
+      params: {
+        limit,
+        offset,
+        ...(search.trim() ? { search: search.trim() } : {}),
+      },
+      timeout: 120000,
+    })
 
-    if (Array.isArray(res.data?.data) && res.data.data.length > 0) {
-      return res.data.data
+    return {
+      data: Array.isArray(res.data?.data) ? res.data.data : [],
+      total: Number(res.data?.total ?? 0),
+      limit: res.data?.limit ?? limit,
+      offset: res.data?.offset ?? offset,
     }
-
-    return INITIAL_PLANETS
   } catch (err) {
     console.warn(
       'Backend /api/planets unavailable, using fallback:',
       err.message
     )
-    return INITIAL_PLANETS
+
+    const q = search.trim().toLowerCase()
+
+    const fallback = q
+      ? INITIAL_PLANETS.filter((planet) =>
+          [
+            planet.name,
+            planet.host_star,
+            planet.planet_type,
+            planet.type,
+          ]
+            .filter(Boolean)
+            .some((value) => value.toLowerCase().includes(q))
+        )
+      : INITIAL_PLANETS
+
+    return {
+      data: fallback.slice(offset, offset + limit),
+      total: fallback.length,
+      limit,
+      offset,
+    }
   }
 }
+
+// Keep the original function available for existing components.
+export async function getPlanets() {
+  const result = await getPlanetsPage()
+  return result.data
+}
+
 
 export async function getPlanetById(planetId) {
   try {
