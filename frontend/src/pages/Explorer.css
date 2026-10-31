@@ -1,0 +1,292 @@
+
+.explore-heading {
+  margin-bottom: 22px;
+}
+
+.explore-search {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+/* YouTube-style Search Autocomplete Dropdown */
+.search-autocomplete-wrap {
+  position: relative;
+  width: min(450px, 100%);
+  margin-bottom: 20px;
+  z-index: 40;
+}
+
+.search-autocomplete-wrap .search-box {
+  width: 100%;
+  margin-bottom: 0;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+
+.search-autocomplete-wrap .search-box.search-open {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-color: rgba(195, 217, 139, 0.45);
+  background: #141817;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.search-clear-btn {
+  background: none;
+  border: none;
+  color: #727a70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: 50%;
+  margin-left: auto;
+  transition: color 0.15s, background 0.15s;
+}
+
+.search-clear-btn:hover {
+  color: #eeefe9;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: rgba(16, 20, 24, 0.96);
+  border: 1px solid rgba(195, 217, 139, 0.4);
+  border-top: none;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+  z-index: 100;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.15s ease;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover,
+.suggestion-item.suggestion-active {
+  background: #18221c;
+}
+
+.suggestion-item.suggestion-current {
+  background: #15241b;
+}
+
+.suggestion-orb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex: none;
+  background: radial-gradient(
+    circle at 35% 30%,
+    #ffffff 0%,
+    var(--sug-color, #8bd6c3) 45%,
+    #222b27 100%
+  );
+  box-shadow: 0 0 10px
+    color-mix(in srgb, var(--sug-color, #8bd6c3) 45%, transparent);
+}
+
+.suggestion-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.suggestion-name {
+  font: 500 12px Manrope, sans-serif;
+  color: #eeefe9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-match-text {
+  color: var(--lime);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.suggestion-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 9px var(--mono);
+  color: #828a80;
+}
+
+.suggestion-meta i {
+  font-style: normal;
+  color: #4e554d;
+}
+
+.suggestion-dist {
+  font: 9px var(--mono);
+  color: #9da69a;
+  white-space: nowrap;
+}
+
+.suggestion-arrow {
+  color: #555d53;
+  transition: color 0.15s, transform 0.15s;
+}
+
+.suggestion-item:hover .suggestion-arrow,
+.suggestion-item.suggestion-active .suggestion-arrow {
+  color: var(--lime);
+  transform: translate(1px, -1px);
+}
+
+.suggestion-empty {
+  padding: 16px;
+  font-size: 11px;
+  color: #879085;
+  text-align: center;
+}
+
+.suggestion-empty b {
+  color: #e2e8df;
+}
+
+/* Main 3D Explorer */
+.explore-feature {
+  min-height: 370px;
+}
+
+.explore-feature .scene-column {
+  min-height: 370px;
+}
+
+.explore-feature .planet-stage {
+  min-height: 280px;
+}
+
+/* Planet Catalogue */
+.explore-results {
+  margin-top: 32px;
+}
+
+.explore-results .catalogue-heading {
+  margin-bottom: 14px;
+}
+
+.results-count {
+  color: #8994a3;
+  font: 9px var(--mono);
+  letter-spacing: 0.1em;
+}
+
+.target-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.target-card {
+  position: relative;
+  min-height: 202px;
+  padding: 13px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: linear-gradient(145deg, #141e2a, #111823);
+  transition: border-color 0.18s, transform 0.18s, background 0.18s;
+}
+
+.target-card:hover {
+  transform: translateY(-2px);
+  border-color: #64704e;
+}
+
+.target-card.target-active {
+  border-color: color-mix(in srgb, var(--orb-color, #8bd6c3) 58%, transparent);
+  background: linear-gradient(145deg, #1a2530, #141c27);
+}
+
+.target-top {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #7f8996;
+}
+
+.target-top svg {
+  color: #768173;
+}
+
+.target-number {
+  font: 9px var(--mono);
+  letter-spacing: 0.06em;
+}
+
+.target-number i {
+  color: #56606d;
+  font-style: normal;
+}
+
+.target-planet {
+  position: absolute;
+  right: 25px;
+  top: 42px;
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #101820;
+  box-shadow: 0 0 28px color-mix(in srgb, var(--orb-color, #8bd6c3) 25%, transparent);
+  pointer-events: none;
+}
+
+.target-planet-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.target-planet-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    transparent 35%,
+    #080b1140 75%,
+    #080b1180
+  );
+  box-shadow: inset -8px -5px 12px #080b1160;
+}
+
+@media (max-width: 430px) {
+  .target-planet {
+    right: 18px;
+    width: 48px;
+    height: 48px;
+  }
+}

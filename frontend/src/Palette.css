@@ -1,0 +1,38 @@
+:root {
+  --bg: #0b1018;
+  --panel: #121a25;
+  --line: rgba(206, 218, 234, .11);
+  --muted: #8994a3;
+  --soft: #b4bfcc;
+  --lime: #e7ad7b;
+}
+
+body { background: #0b1018; color: #e9edf2; }
+.sidebar { background: #0d131d; }
+.main-area { background: #0b1018; }
+.brand-mark { border-color: #684d3b; color: #e7ad7b; }
+.nav-link:hover { background: #171f2c; color: #edf1f5; }
+.nav-link.active { background: #29211d; color: #f0c39d; }
+.nav-count { color: #d7a77f; }
+.status-dot, .live-pip { background: #e2a675; box-shadow: 0 0 9px #e2a67566; }
+.status-card, .command-key, .search-box, .icon-action { background-color: #141c28; }
+.page-heading h1, .details-column h2 { color: #f0eee9; }
+.page-heading h1 em { color: #e7ad7b; }
+.explorer-card { background: linear-gradient(125deg, #141d29, #111823 66%); }
+.planet-stage { background: radial-gradient(ellipse at center, #26334244 0%, transparent 68%); }
+.orbit-ring-one { border-color: color-mix(in srgb, var(--world-color) 19%, transparent); }
+.orbit-ring-two { border-color: rgba(201, 212, 228, .075); }
+.scene-glow { background: radial-gradient(circle, color-mix(in srgb, var(--world-color) 13%, transparent) 0%, color-mix(in srgb, var(--world-color) 5%, transparent) 42%, transparent 72%); }
+.detail-kicker { color: #d5b394; }
+.zone-note { background: #211e1b; border-color: #49372a; }
+.zone-symbol { color: #e7ad7b; }
+.zone-note b { color: #f0cfb1; }
+.primary-action { background: #e7ad7b; border-color: #e7ad7b; color: #21170f; }
+.primary-action:hover { background: #f1c49c; }
+.world-row:hover, .world-selected { background: #161f2a; }
+.catalogue-foot button { color: #e5b891; }
+.row-arrow { color: #8994a3; }
+
+@media (max-width: 760px) {
+  .sidebar { background: #0d131d; }
+}
