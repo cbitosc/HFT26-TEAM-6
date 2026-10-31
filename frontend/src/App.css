@@ -2345,3 +2345,497 @@ body {
 .dyk-footer button:hover {
   background: rgba(139, 214, 195, 0.1);
 }
+
+/* ==========================================================
+   CUSTOM REPORT BUILDER & EXPORT DOSSIER MODAL (PDF / DOCX / ZIP)
+   ========================================================== */
+
+.export-top-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(195, 217, 139, 0.12);
+  border: 1px solid rgba(195, 217, 139, 0.35);
+  color: var(--lime);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.export-top-btn:hover {
+  background: rgba(195, 217, 139, 0.24);
+  border-color: var(--lime);
+  color: #fff;
+  box-shadow: 0 0 12px rgba(195, 217, 139, 0.25);
+  transform: translateY(-1px);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 7, 10, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: modalFadeIn 0.2s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.export-modal-dialog {
+  background: #111417;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(195, 217, 139, 0.08);
+  animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.export-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 22px 26px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 100%);
+}
+
+.export-modal-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 9px var(--mono);
+  letter-spacing: 0.14em;
+  color: var(--lime);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.export-modal-header h3 {
+  margin: 0 0 4px;
+  font: 600 20px Manrope, sans-serif;
+  color: #f1f4ed;
+  letter-spacing: -0.02em;
+}
+
+.export-modal-header p {
+  margin: 0;
+  font-size: 12px;
+  color: #8c938b;
+  line-height: 1.4;
+}
+
+.export-modal-close {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #8a9288;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+}
+
+.export-modal-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.export-modal-body {
+  padding: 22px 26px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.export-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.export-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 11px var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #c0c7bc;
+}
+
+.export-step-badge {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(195, 217, 139, 0.16);
+  color: var(--lime);
+  font: 10px var(--mono);
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+
+/* Scope Selection Grid */
+.export-scope-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.export-scope-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #15191c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s ease;
+}
+
+.export-scope-card:hover {
+  background: #191e22;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.export-scope-card.active {
+  background: rgba(195, 217, 139, 0.08);
+  border-color: var(--lime);
+  box-shadow: 0 0 12px rgba(195, 217, 139, 0.1);
+}
+
+.scope-radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  margin-top: 2px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: border-color 0.18s ease;
+}
+
+.export-scope-card.active .scope-radio {
+  border-color: var(--lime);
+}
+
+.scope-radio-fill {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--lime);
+}
+
+.scope-info b {
+  display: block;
+  font-size: 12px;
+  color: #e5ece0;
+  margin-bottom: 2px;
+}
+
+.scope-info small {
+  display: block;
+  font-size: 10px;
+  color: #7b8379;
+  line-height: 1.35;
+}
+
+/* Section Checkboxes */
+.export-checkbox-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.export-check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 10px 13px;
+  background: #15191c;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+
+.export-check-item:hover {
+  background: #191e22;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.export-check-item input[type='checkbox'] {
+  display: none;
+}
+
+.custom-check-box {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  display: grid;
+  place-items: center;
+  margin-top: 1px;
+  flex-shrink: 0;
+  background: #0f1214;
+  color: #0c0e10;
+  transition: all 0.16s ease;
+}
+
+.export-check-item input[type='checkbox']:checked + .custom-check-box {
+  background: var(--lime);
+  border-color: var(--lime);
+  color: #12170f;
+}
+
+.check-text b {
+  display: block;
+  font-size: 12px;
+  color: #dce3d8;
+  margin-bottom: 2px;
+}
+
+.check-text small {
+  display: block;
+  font-size: 10px;
+  color: #747d72;
+}
+
+/* Format Cards */
+.export-format-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.export-format-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  background: #15191c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s ease;
+}
+
+.export-format-card:hover {
+  background: #1a2024;
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.export-format-card.active {
+  background: rgba(195, 217, 139, 0.09);
+  border-color: var(--lime);
+  box-shadow: 0 0 16px rgba(195, 217, 139, 0.12);
+}
+
+.format-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+}
+
+.pdf-icon {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.docx-icon {
+  background: rgba(59, 130, 246, 0.12);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.zip-icon {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.format-info b {
+  display: block;
+  font-size: 13px;
+  color: #e5ece0;
+  margin-bottom: 3px;
+}
+
+.format-info span {
+  display: block;
+  font-size: 10px;
+  color: #7b8379;
+  line-height: 1.35;
+}
+
+.format-tag {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font: 9px var(--mono);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #92998e;
+  text-transform: uppercase;
+}
+
+.export-format-card.active .format-tag {
+  background: rgba(195, 217, 139, 0.2);
+  color: var(--lime);
+}
+
+/* Modal Footer */
+.export-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 26px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0f1214;
+}
+
+.export-summary-stat b {
+  display: block;
+  font-size: 12px;
+  color: #dbe2d6;
+}
+
+.export-summary-stat span {
+  display: block;
+  font: 9px var(--mono);
+  color: #767e74;
+  margin-top: 2px;
+}
+
+.export-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.export-cancel-btn {
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: #9aa298;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.export-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.export-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border: 1px solid #bfd592;
+  background: #bfd592;
+  color: #12180e;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(191, 213, 146, 0.25);
+}
+
+.export-submit-btn:hover:not(:disabled) {
+  background: #cee4a0;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(191, 213, 146, 0.35);
+}
+
+.export-submit-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.export-submit-btn.success {
+  background: #34d399;
+  border-color: #34d399;
+  color: #064e3b;
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 640px) {
+  .export-scope-grid {
+    grid-template-columns: 1fr;
+  }
+  .export-format-grid {
+    grid-template-columns: 1fr;
+  }
+  .export-modal-footer {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .export-footer-actions {
+    justify-content: flex-end;
+  }
+}

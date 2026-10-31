@@ -21,6 +21,7 @@ export default function ExplorerPage({
   query,
   setQuery,
   onNavigate,
+  onExport,
   totalPlanets = worlds.length,
   loadingMore = false,
   hasMore = false,
@@ -129,6 +130,7 @@ export default function ExplorerPage({
         <PlanetDetailsPanel
           planet={selected}
           onNavigate={onNavigate}
+          onExport={onExport}
           onCompare={(planet) => {
             if (onNavigate) {
               onNavigate('Compare', planet)

@@ -1,7 +1,7 @@
-import { ArrowUpRight, Award, Compass, Globe2, Info, Orbit, Sparkles, Telescope } from 'lucide-react'
+import { ArrowUpRight, Award, Compass, Download, Globe2, Info, Orbit, Sparkles, Telescope } from 'lucide-react'
 import { EARTH_BENCHMARK } from '../services/api'
 
-export default function PlanetDetailsPanel({ planet, onNavigate, onCompare }) {
+export default function PlanetDetailsPanel({ planet, onNavigate, onCompare, onExport }) {
   if (!planet) {
     return (
       <div className="details-column empty-details">
@@ -271,6 +271,18 @@ export default function PlanetDetailsPanel({ planet, onNavigate, onCompare }) {
             onClick={() => onCompare(planet)}
           >
             <Orbit size={16} />
+          </button>
+        )}
+
+        {onExport && (
+          <button
+            type="button"
+            className="icon-action"
+            aria-label="Export mission dossier"
+            title="Export mission dossier & scientific report (PDF / DOCX / ZIP)"
+            onClick={() => onExport(planet)}
+          >
+            <Download size={15} />
           </button>
         )}
       </div>

@@ -18,6 +18,7 @@ export default function ObservatoryStage({
   onSelectPlanet,
   onNavigate,
   onCompare,
+  onExport,
   statusLabel = 'OPTICAL TELEMETRY · 3D ORBITAL MAPPING',
 }) {
   const [resetSignal, setResetSignal] = useState(0)
@@ -78,6 +79,7 @@ export default function ObservatoryStage({
           planet={selectedPlanet}
           onNavigate={onNavigate}
           onCompare={onCompare}
+          onExport={onExport}
         />
       </aside>
 

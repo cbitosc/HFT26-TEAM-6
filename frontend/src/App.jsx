@@ -7,6 +7,7 @@ import {
   CircleHelp,
   Compass,
   Command,
+  Download,
   Globe2,
   Menu,
   Orbit,
@@ -17,6 +18,7 @@ import {
 
 import ObservatoryStage from './components/ObservatoryStage'
 import DidYouKnow from './components/DidYouKnow'
+import ExportReportModal from './components/ExportReportModal'
 import ExplorerPage from './pages/ExplorerPage'
 import ComparePage from './pages/ComparePage'
 import InsightsPage from './pages/InsightsPage'
@@ -52,6 +54,7 @@ export default function App() {
   const [searching, setSearching] = useState(false)
 
   const [compareData, setCompareData] = useState(null)
+  const [exportModalOpen, setExportModalOpen] = useState(false)
 
   // Load the first 100 planets from NASA.
   useEffect(() => {
@@ -250,6 +253,16 @@ export default function App() {
               NASA ARCHIVE ACTIVE
             </span>
 
+            <button
+              type="button"
+              className="export-top-btn"
+              onClick={() => setExportModalOpen(true)}
+              title="Build custom PDF, Word, or ZIP research dossier"
+            >
+              <Download size={13} />
+              <span>Export Report</span>
+            </button>
+
             <button className="command-key" aria-label="Search">
               <Command size={14} />
               <span>K</span>
@@ -266,6 +279,7 @@ export default function App() {
             query={query}
             setQuery={setQuery}
             onNavigate={navigate}
+            onExport={() => setExportModalOpen(true)}
             totalPlanets={totalPlanets}
             loadingMore={loadingMore}
             hasMore={hasMore}
@@ -324,6 +338,7 @@ export default function App() {
                 onSelectPlanet={setSelected}
                 onNavigate={navigate}
                 onCompare={(planet) => navigate('Compare', planet)}
+                onExport={() => setExportModalOpen(true)}
                 statusLabel="OPTICAL TELEMETRY · FIELD OBSERVATION"
               />
             </div>
@@ -431,6 +446,13 @@ export default function App() {
             </section>
           </div>
         )}
+
+        <ExportReportModal
+          isOpen={exportModalOpen}
+          onClose={() => setExportModalOpen(false)}
+          selectedPlanet={selected}
+          worlds={worlds}
+        />
       </main>
     </div>
   )
