@@ -32,6 +32,16 @@ export default function ExplorerPage({
     (world) => world.id === selected?.id
   )
 
+  const handleSelectPlanet = (world) => {
+    setSelected(world)
+    const stage = document.getElementById('explorer-stage')
+    if (stage) {
+      stage.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
   return (
     <div className="content-wrap explore-page">
       {/* Header */}
@@ -63,12 +73,12 @@ export default function ExplorerPage({
         setQuery={setQuery}
         worlds={worlds}
         selected={selected}
-        onSelectPlanet={setSelected}
+        onSelectPlanet={handleSelectPlanet}
         placeholder="Search by planet name, host star, or type (e.g. Kepler, TRAPPIST, Lava)..."
       />
 
       {/* Main 3D Stage and Details */}
-      <section className="explorer-card explore-feature">
+      <section className="explorer-card explore-feature" id="explorer-stage">
         <div className="scene-column">
           <div className="scene-topline">
             <span>
@@ -171,7 +181,7 @@ export default function ExplorerPage({
                   style={{
                     '--orb-color': world.color || '#8bd6c3',
                   }}
-                  onClick={() => setSelected(world)}
+                  onClick={() => handleSelectPlanet(world)}
                 >
                   <span className="target-top">
                     <span className="target-number">

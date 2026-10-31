@@ -162,6 +162,16 @@ export default function App() {
     setMenuOpen(false)
   }
 
+  function handleSelectPlanet(world) {
+    setSelected(world)
+    const stage = document.getElementById('overview-observatory-stage')
+    if (stage) {
+      stage.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
   const hasMore = worlds.length < totalPlanets
 
   return (
@@ -307,14 +317,16 @@ export default function App() {
               </div>
             </section>
 
-            <ObservatoryStage
-              planets={visibleWorlds}
-              selectedPlanet={selected}
-              onSelectPlanet={setSelected}
-              onNavigate={navigate}
-              onCompare={(planet) => navigate('Compare', planet)}
-              statusLabel="OPTICAL TELEMETRY · FIELD OBSERVATION"
-            />
+            <div id="overview-observatory-stage">
+              <ObservatoryStage
+                planets={visibleWorlds}
+                selectedPlanet={selected}
+                onSelectPlanet={setSelected}
+                onNavigate={navigate}
+                onCompare={(planet) => navigate('Compare', planet)}
+                statusLabel="OPTICAL TELEMETRY · FIELD OBSERVATION"
+              />
+            </div>
             <DidYouKnow />
             <section className="catalogue-section">
               <div className="catalogue-heading">
@@ -358,7 +370,7 @@ export default function App() {
                         selected?.name === world.name ? 'world-selected' : ''
                       }`}
                       key={world.id || world.name}
-                      onClick={() => setSelected(world)}
+                      onClick={() => handleSelectPlanet(world)}
                     >
                       <span className="row-number">
                         {String(index + 1).padStart(2, '0')}
